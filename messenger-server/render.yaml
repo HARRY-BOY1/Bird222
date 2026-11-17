@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: messenger-server
+    rootDir: messenger-server
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DB_PATH
+        value: ./data/app.db

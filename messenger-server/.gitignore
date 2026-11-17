@@ -1,0 +1,11 @@
+node_modules/
+backups/
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.log
+.env
+.env.*
+!.env.example
+!.env.pella.example

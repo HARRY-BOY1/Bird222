@@ -1,7 +1,7 @@
 // One place to switch the server address.
 // Local: http://localhost:3001 | Phone on same Wi-Fi: http://<computer-ip>:3001
 // Production (Render): https://messenger-server-xxxx.onrender.com
-const SERVER_URL = 'https://eminem-logs-parties-decide.trycloudflare.com';
+const SERVER_URL = 'https://judy-michelle-seal-oriented.trycloudflare.com';
 
 function turnServers() {
   const url = window.TURN_URL && window.TURN_URL.trim();

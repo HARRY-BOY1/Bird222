@@ -1,0 +1,28 @@
+# Render Blueprint — خادم Bird
+# الاستخدام: Render Dashboard > New > Blueprint > اختر هذا المستودع.
+# ملاحظة: الخطة المجانية لا تدعم القرص الدائم (Disk)، لذلك تُفقد الرسائل عند كل إعادة نشر/إعادة تشغيل.
+# لتفعيل الحفظ الدائم: غيّر plan إلى starter وأزل التعليق عن قسم disk و DB_PATH.
+services:
+  - type: web
+    name: bird-server
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: messenger-server
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DB_PATH
+        value: ./data/bird.sqlite
+    # disk:
+    #   name: bird-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
