@@ -4,7 +4,13 @@ const db = require('../db');
 const { verifyToken } = require('../middleware/auth');
 
 const safeId = z.coerce.number().int().positive().refine(Number.isSafeInteger);
-const sendSchema = z.object({ to: safeId, text: z.string().trim().min(1).max(4000) }).strict();
+const sendSchema = z.object({
+  to: safeId,
+  text: z.string().max(4000).optional().default(''),
+  kind: z.enum(['text', 'image', 'video', 'audio', 'file', 'sticker']).optional(),
+  attachmentId: z.string().regex(/^[a-f0-9]{32}$/).optional(),
+  sticker: z.string().trim().min(1).max(64).optional(),
+}).strict();
 const messageIdSchema = z.object({ messageId: safeId }).strict();
 const targetSchema = z.object({ to: safeId }).strict();
 const callStartSchema = z.object({
@@ -73,17 +79,36 @@ function initializeSocket(httpServer, corsOrigin) {
 
     socket.on('message:send', (payload, acknowledge) => {
       const input = sendSchema.safeParse(payload);
-      if (!input.success) return respond(acknowledge, { error: 'Invalid message: to must be a user id and text must be 1–4000 characters' });
+      if (!input.success) return respond(acknowledge, { error: 'رسالة غير صالحة: تحقق من المستلم والنص والمرفق.' });
+      const text = (input.data.text || '').trim();
+      const kind = input.data.kind || 'text';
+
+      if (kind === 'sticker' && !input.data.sticker) return respond(acknowledge, { error: 'الملصق غير صالح.' });
+      if (kind !== 'text' && kind !== 'sticker' && !input.data.attachmentId) return respond(acknowledge, { error: 'المرفق مفقود.' });
+      if (kind === 'text' && !text) return respond(acknowledge, { error: 'لا يمكن إرسال رسالة فارغة.' });
+
+      let file = null;
+      if (input.data.attachmentId) {
+        file = db.prepare('SELECT id, name, size, mime FROM files WHERE id = ? AND owner_id = ?').get(input.data.attachmentId, id);
+        if (!file) return respond(acknowledge, { error: 'المرفق غير موجود أو لا يخصك.' });
+      }
+
+      const insert = db.prepare(`INSERT INTO messages
+        (sender_id, receiver_id, text, kind, attachment_id, attachment_name, attachment_size, attachment_mime, sticker)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+      const values = (receiverId) => [id, receiverId, text, kind, file?.id ?? null, file?.name ?? null, file?.size ?? null, file?.mime ?? null, input.data.sticker ?? null];
+      const messageColumns = 'id, sender_id, receiver_id, text, status, created_at, kind, attachment_id, attachment_name, attachment_size, attachment_mime, sticker';
+
       if (input.data.to === id) {
-        const result = db.prepare('INSERT INTO messages (sender_id, receiver_id, text) VALUES (?, ?, ?)').run(id, id, input.data.text);
-        const message = db.prepare('SELECT id, sender_id, receiver_id, text, status, created_at FROM messages WHERE id = ?').get(result.lastInsertRowid);
+        const result = insert.run(...values(id));
+        const message = db.prepare(`SELECT ${messageColumns} FROM messages WHERE id = ?`).get(result.lastInsertRowid);
         socket.emit('message:new', message);
         return respond(acknowledge, { message });
       }
       if (!db.prepare('SELECT id FROM users WHERE id = ?').get(input.data.to)) return respond(acknowledge, { error: 'Recipient not found' });
 
-      const result = db.prepare('INSERT INTO messages (sender_id, receiver_id, text) VALUES (?, ?, ?)').run(id, input.data.to, input.data.text);
-      const message = db.prepare('SELECT id, sender_id, receiver_id, text, status, created_at FROM messages WHERE id = ?').get(result.lastInsertRowid);
+      const result = insert.run(...values(input.data.to));
+      const message = db.prepare(`SELECT ${messageColumns} FROM messages WHERE id = ?`).get(result.lastInsertRowid);
       if (online.has(input.data.to)) {
         db.prepare("UPDATE messages SET status = 'delivered' WHERE id = ?").run(message.id);
         message.status = 'delivered';

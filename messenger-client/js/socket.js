@@ -22,10 +22,14 @@
       }
       return socket;
     },
-    send(to, text) {
+    send(to, text, options = {}) {
       return new Promise((resolve, reject) => {
         if (!socket?.connected) return reject(new Error('الاتصال غير متاح حالياً. حاول بعد عودة الاتصال.'));
-        socket.timeout(8000).emit('message:send', { to, text }, (error, response) => {
+        const payload = { to, text: text || '' };
+        if (options.kind) payload.kind = options.kind;
+        if (options.attachmentId) payload.attachmentId = options.attachmentId;
+        if (options.sticker) payload.sticker = options.sticker;
+        socket.timeout(20000).emit('message:send', payload, (error, response) => {
           if (error) return reject(new Error('لم يصل تأكيد الرسالة. تحقق من المحادثة قبل إعادة الإرسال.'));
           if (response?.error) return reject(new Error(response.error));
           resolve(response.message);

@@ -27,8 +27,39 @@
     return data;
   }
 
+  function uploadFile(file, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${baseUrl}/api/upload`);
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable && onProgress) onProgress(event.loaded / event.total);
+      });
+      xhr.addEventListener('load', () => {
+        let data = {};
+        try { data = JSON.parse(xhr.responseText || '{}'); } catch { /* non-JSON error */ }
+        if (xhr.status >= 200 && xhr.status < 300) return resolve(data.file);
+        const error = new Error(data.error || `فشل الرفع (${xhr.status})`);
+        error.status = xhr.status;
+        return reject(error);
+      });
+      xhr.addEventListener('error', () => reject(new Error('تعذّر رفع الملف. تحقّق من الاتصال.')));
+      xhr.addEventListener('abort', () => reject(Object.assign(new Error('تم إلغاء الرفع.'), { aborted: true })));
+      const body = new FormData();
+      body.append('file', file);
+      xhr.send(body);
+      API.lastUpload = xhr;
+    });
+  }
+
   const API = {
+    maxUploadBytes: 50 * 1024 * 1024,
+    lastUpload: null,
     setToken(value) { token = value || null; },
+    fileUrl(id) { return `${baseUrl}/files/${encodeURIComponent(id)}?token=${encodeURIComponent(token || '')}`; },
+    uploadFile,
+    cancelUpload() { try { API.lastUpload?.abort(); } catch { /* ignore */ } },
+
     async register(username, password) { return request('/api/register', { method: 'POST', body: { username, password } }); },
     async login(username, password) { return request('/api/login', { method: 'POST', body: { username, password } }); },
     async contacts() { const data = await request('/api/contacts'); return { contacts: data.contacts, prefs: data.prefs || {} }; },

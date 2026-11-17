@@ -1,11 +1,15 @@
 const express = require('express');
+const crypto = require('node:crypto');
 const { z } = require('zod');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { upload, safeName, MAX_BYTES } = require('../uploads');
 
 const router = express.Router();
 const userIdSchema = z.coerce.number().int().positive();
 const messageCursorSchema = z.coerce.number().int().positive();
+
+const MESSAGE_COLUMNS = 'id, sender_id, receiver_id, text, status, created_at, edited_at, reply_to, reaction, kind, attachment_id, attachment_name, attachment_size, attachment_mime, sticker';
 
 router.use(requireAuth);
 
@@ -26,6 +30,29 @@ function visibleMessage(message, viewerId) {
     })() : null,
   };
 }
+
+router.post('/upload', (req, res) => {
+  upload.single('file')(req, res, (error) => {
+    if (error) {
+      const status = error.code === 'LIMIT_FILE_SIZE' ? 413 : (error.status || 400);
+      const message = error.code === 'LIMIT_FILE_SIZE'
+        ? `الحد الأقصى لحجم الملف ${Math.round(MAX_BYTES / (1024 * 1024))} ميجابايت`
+        : error.message;
+      return res.status(status).json({ error: message });
+    }
+    if (!req.file) return res.status(400).json({ error: 'لم يتم اختيار ملف' });
+    const id = crypto.randomBytes(16).toString('hex');
+    const name = safeName(req.file.originalname);
+    try {
+      db.prepare('INSERT INTO files (id, owner_id, name, stored_name, size, mime) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(id, req.user.id, name, req.file.filename, req.file.size, req.file.mimetype);
+    } catch (dbError) {
+      try { require('node:fs').unlinkSync(req.file.path); } catch { /* ignore cleanup failure */ }
+      throw dbError;
+    }
+    return res.status(201).json({ file: { id, name, size: req.file.size, mime: req.file.mimetype } });
+  });
+});
 
 router.get('/users/search', (req, res) => {
   const query = z.string().trim().min(1).max(32).safeParse(req.query.q);
@@ -138,7 +165,7 @@ router.put('/drafts', (req, res) => {
 
 router.get('/saved-messages', (req, res) => {
   const messages = db.prepare(`
-    SELECT id, sender_id, receiver_id, text, status, created_at, edited_at, reply_to, reaction FROM messages
+    SELECT ${MESSAGE_COLUMNS} FROM messages
     WHERE sender_id = ? AND receiver_id = ? AND deleted_for_all = 0
       AND id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
     ORDER BY id DESC LIMIT 50
@@ -154,7 +181,7 @@ router.get('/messages/:userId', (req, res) => {
   if (before && (!before.success || !Number.isSafeInteger(before.data))) return res.status(400).json({ error: 'before must be a positive safe integer message id' });
 
   const messages = db.prepare(`
-    SELECT id, sender_id, receiver_id, text, status, created_at, edited_at, reply_to, reaction FROM messages
+    SELECT ${MESSAGE_COLUMNS} FROM messages
     WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
       AND deleted_for_all = 0
       AND id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
@@ -180,7 +207,7 @@ router.post('/messages/:id/edit', (req, res) => {
   const { message, error } = editableMessage(req, res);
   if (error) return;
   db.prepare("UPDATE messages SET text = ?, edited_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?").run(parsed.data.text, message.id);
-  const updated = db.prepare('SELECT id, sender_id, receiver_id, text, status, created_at, edited_at, reply_to, reaction FROM messages WHERE id = ?').get(message.id);
+  const updated = db.prepare(`SELECT ${MESSAGE_COLUMNS} FROM messages WHERE id = ?`).get(message.id);
   res.json({ message: visibleMessage(updated, req.user.id) });
 });
 

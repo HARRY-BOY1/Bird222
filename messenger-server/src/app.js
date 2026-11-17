@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
+const filesRoutes = require('./routes/files');
 const { initializeSocket } = require('./socket');
 const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
   .split(',').map((origin) => origin.trim()).filter(Boolean);
@@ -19,6 +20,7 @@ function createApp() {
   app.get('/health', (_req, res) => res.json({ ok: true }));
   app.use('/api', authRoutes);
   app.use('/api', apiRoutes);
+  app.use('/files', filesRoutes);
   app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
   app.use((error, _req, res, _next) => {
     if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {

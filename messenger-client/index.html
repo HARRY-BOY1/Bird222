@@ -179,9 +179,20 @@
           <div id="typing-indicator" class="typing-indicator" hidden><span class="typing-dots"><i></i><i></i><i></i></span><span id="typing-label">يكتب...</span></div>
         </div>
         <div id="reply-bar" class="reply-bar" hidden><span id="reply-preview"></span><button id="cancel-reply" class="icon-button" type="button" aria-label="إلغاء"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button></div>
+        <div id="upload-status" class="upload-status" hidden>
+          <svg class="ic"><use href="assets/icons.svg#i-paperclip"/></svg>
+          <span id="upload-name">جارٍ الرفع...</span>
+          <span class="upload-bar"><i id="upload-fill"></i></span>
+          <button id="cancel-upload" class="icon-button" type="button" aria-label="إلغاء الرفع"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button>
+        </div>
+        <div id="sticker-panel" class="sticker-panel" hidden aria-label="الملصقات">
+          <div class="sticker-head"><strong>الملصقات</strong><button id="close-stickers" class="icon-button" type="button" aria-label="إغلاق"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button></div>
+          <div id="sticker-grid" class="sticker-grid"></div>
+        </div>
         <form id="composer" class="composer">
-          <button id="emoji-button" class="composer-tool" type="button" aria-label="إيموجي"><svg class="ic"><use href="assets/icons.svg#i-smile"/></svg></button>
-          <button id="attach-button" class="composer-tool" type="button" aria-label="إرفاق" disabled><svg class="ic"><use href="assets/icons.svg#i-paperclip"/></svg></button>
+          <button id="emoji-button" class="composer-tool" type="button" aria-label="الملصقات"><svg class="ic"><use href="assets/icons.svg#i-smile"/></svg></button>
+          <button id="attach-button" class="composer-tool" type="button" aria-label="إرفاق ملف"><svg class="ic"><use href="assets/icons.svg#i-paperclip"/></svg></button>
+          <input id="file-input" type="file" multiple hidden>
           <textarea id="message-input" rows="1" maxlength="4000" placeholder="اكتب رسالة..." aria-label="اكتب رسالتك"></textarea>
           <button id="send-button" class="send-button" type="submit" aria-label="إرسال"><svg class="ic"><use href="assets/icons.svg#i-send"/></svg></button>
         </form>
@@ -227,6 +238,7 @@
     window.TURN_PASS = '';
   </script>
   <script src="config.js"></script>
+<script src="js/stickers.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/api.js"></script>
 <script src="js/socket.js"></script>

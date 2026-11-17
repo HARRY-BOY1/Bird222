@@ -48,6 +48,24 @@ addColumn('messages', 'edited_at', 'TEXT');
 addColumn('messages', 'reply_to', 'INTEGER');
 addColumn('messages', 'reaction', 'TEXT');
 addColumn('messages', 'deleted_for_all', 'INTEGER NOT NULL DEFAULT 0');
+addColumn('messages', 'kind', "TEXT NOT NULL DEFAULT 'text'");
+addColumn('messages', 'attachment_id', 'TEXT');
+addColumn('messages', 'attachment_name', 'TEXT');
+addColumn('messages', 'attachment_size', 'INTEGER');
+addColumn('messages', 'attachment_mime', 'TEXT');
+addColumn('messages', 'sticker', 'TEXT');
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS files (
+    id TEXT PRIMARY KEY,
+    owner_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    stored_name TEXT NOT NULL,
+    size INTEGER NOT NULL,
+    mime TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  );
+`);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS message_deletions (

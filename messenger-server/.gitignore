@@ -5,6 +5,7 @@ data/
 *.sqlite-wal
 *.sqlite-shm
 *.log
+uploads/
 .env
 .env.*
 !.env.example

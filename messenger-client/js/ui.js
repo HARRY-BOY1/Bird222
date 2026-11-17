@@ -28,6 +28,9 @@
     callVideoArea: $('#call-video-area'), remoteVideo: $('#remote-video'), localVideo: $('#local-video'),
     acceptCallButton: $('#accept-call-button'), rejectCallButton: $('#reject-call-button'), hangupCallButton: $('#hangup-call-button'),
     muteCallButton: $('#mute-call-button'), cameraCallButton: $('#camera-call-button'),
+    attachButton: $('#attach-button'), fileInput: $('#file-input'), uploadStatus: $('#upload-status'),
+    uploadName: $('#upload-name'), uploadFill: $('#upload-fill'), cancelUpload: $('#cancel-upload'),
+    stickerPanel: $('#sticker-panel'), stickerGrid: $('#sticker-grid'), closeStickers: $('#close-stickers'),
   };
   let toastTimer, installPrompt = null, callPeer = null, localStream = null, callSeconds = 0, callTick = null;
 
@@ -95,7 +98,9 @@
     const bottom = document.createElement('span'); bottom.className = 'chat-row-bottom';
     const preview = document.createElement('span'); preview.className = 'chat-row-preview';
     if (chat.lastMessage?.sender_id === currentUserId) preview.append(document.createTextNode('أنت: '));
-    preview.append(document.createTextNode(chat.lastMessage?.text || chat.lastMessage?.preview || 'ابدأ المحادثة'));
+    const last = chat.lastMessage;
+    const kindLabel = !last ? '' : ({ image: 'صورة', video: 'فيديو', audio: 'مقطع صوتي', sticker: 'ملصق' }[last.kind] || (last.kind === 'file' ? (last.attachment_name || 'ملف') : ''));
+    preview.append(document.createTextNode(last?.text || kindLabel || last?.preview || 'ابدأ المحادثة'));
     bottom.append(preview);
     if (chat.unread > 0) { const badge = document.createElement('span'); badge.className = 'unread-badge'; badge.textContent = chat.unread > 99 ? '99+' : String(chat.unread); bottom.append(badge); }
     body.append(top, bottom); button.append(avatar, body); button.addEventListener('click', () => onOpen(chat));
@@ -156,6 +161,72 @@
   function openChatLayout() { els.messengerScreen.classList.add('chat-open'); }
   function closeChatLayout() { els.messengerScreen.classList.remove('chat-open'); }
   function scrollToBottom(smooth = true) { els.messagesContainer.scrollTo({ top: els.messagesContainer.scrollHeight, behavior: smooth ? 'smooth' : 'instant' }); }
+  function iconSvg(name) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'ic');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', `assets/icons.svg#${name}`);
+    svg.append(use);
+    return svg;
+  }
+  function humanSize(bytes) {
+    if (!bytes) return '';
+    const units = ['بايت', 'كيلوبايت', 'ميجابايت', 'جيجابايت'];
+    let value = Number(bytes);
+    let index = 0;
+    while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1; }
+    return `${value.toFixed(index === 0 || value >= 10 ? 0 : 1)} ${units[index]}`;
+  }
+  function openImageViewer(src) {
+    const layer = document.createElement('div');
+    layer.className = 'image-viewer';
+    const image = document.createElement('img');
+    image.src = src; image.alt = 'صورة';
+    const close = document.createElement('button');
+    close.type = 'button'; close.setAttribute('aria-label', 'إغلاق');
+    close.append(iconSvg('i-x'));
+    const dismiss = () => layer.remove();
+    close.addEventListener('click', dismiss);
+    layer.addEventListener('click', (event) => { if (event.target === layer) dismiss(); });
+    document.addEventListener('keydown', function onKey(event) { if (event.key === 'Escape') { dismiss(); document.removeEventListener('keydown', onKey); } });
+    layer.append(image, close);
+    document.body.append(layer);
+  }
+  function buildAttachment(message) {
+    const url = window.API.fileUrl(message.attachment_id);
+    const name = message.attachment_name || 'ملف';
+    const kind = message.kind || 'text';
+    if (kind === 'image') {
+      const image = document.createElement('img');
+      image.className = 'message-media msg-image';
+      image.src = url; image.alt = name; image.loading = 'lazy';
+      image.addEventListener('click', () => openImageViewer(url));
+      return image;
+    }
+    if (kind === 'video') {
+      const video = document.createElement('video');
+      video.className = 'message-media msg-video';
+      video.src = url; video.controls = true; video.preload = 'metadata'; video.playsInline = true;
+      return video;
+    }
+    if (kind === 'audio') {
+      const audio = document.createElement('audio');
+      audio.className = 'msg-audio'; audio.src = url; audio.controls = true; audio.preload = 'metadata';
+      return audio;
+    }
+    const link = document.createElement('a');
+    link.className = 'message-file'; link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.download = name;
+    const icon = document.createElement('span');
+    icon.className = 'file-icon';
+    icon.append(iconSvg('i-download'));
+    const meta = document.createElement('span');
+    meta.className = 'file-meta';
+    const title = document.createElement('strong'); title.textContent = name;
+    const size = document.createElement('small'); size.textContent = humanSize(message.attachment_size);
+    meta.append(title, size);
+    link.append(icon, meta);
+    return link;
+  }
   function createMessageRow(message, currentUserId, onContext) {
     const mine = Number(message.sender_id) === Number(currentUserId);
     const row = document.createElement('article'); row.className = `message-row ${mine ? 'mine' : 'theirs'}`; row.dataset.messageId = String(message.id);
@@ -167,7 +238,18 @@
       quote.textContent = `${reply.sender_id ? (Number(reply.sender_id) === Number(currentUserId) ? 'أنت' : els.chatUsername.textContent) : 'رد'}: ${(reply.text || '').slice(0, 90)}`;
       bubble.append(quote);
     }
-    const text = document.createElement('span'); text.className = 'message-text'; text.textContent = message.text;
+    const kind = message.kind || 'text';
+    if (kind === 'sticker' && message.sticker) {
+      row.classList.add('sticker');
+      const sticker = document.createElement('img');
+      sticker.className = 'message-sticker';
+      sticker.src = `assets/stickers/${String(message.sticker).replace(/[^a-zA-Z0-9_-]/g, '')}.svg`;
+      sticker.alt = 'ملصق'; sticker.loading = 'lazy';
+      bubble.append(sticker);
+    } else if (kind !== 'text' && message.attachment_id) {
+      bubble.append(buildAttachment(message));
+    }
+    const text = document.createElement('span'); text.className = 'message-text'; text.textContent = message.text || '';
     if (message.deleted) text.classList.add('deleted-text');
     const meta = document.createElement('span'); meta.className = 'message-meta';
     if (message.edited_at) { const edited = document.createElement('span'); edited.className = 'edited-label'; edited.textContent = 'معدّلة'; meta.append(edited); }

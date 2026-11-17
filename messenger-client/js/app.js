@@ -533,6 +533,112 @@
     } catch (error) { showError(error); }
     finally { state.loadingOlder = false; els.loadOlder.disabled = false; els.loadOlder.textContent = '↑ تحميل رسائل أقدم'; }
   }
+  function detectKind(file) {
+    const type = String(file.type || '').toLowerCase();
+    const name = String(file.name || '').toLowerCase();
+    if (type.startsWith('image/')) return 'image';
+    if (type.startsWith('video/')) return 'video';
+    if (type.startsWith('audio/')) return 'audio';
+    if (/\.(png|jpe?g|gif|webp|avif|bmp|svg)$/.test(name)) return 'image';
+    if (/\.(mp4|webm|mov|m4v|mkv)$/.test(name)) return 'video';
+    if (/\.(mp3|wav|ogg|m4a|aac|opus|flac)$/.test(name)) return 'audio';
+    return 'file';
+  }
+  function readableSize(bytes) {
+    const units = ['بايت', 'كيلوبايت', 'ميجابايت'];
+    let value = Number(bytes) || 0; let index = 0;
+    while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1; }
+    return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+  }
+  function afterSent(contact, message) {
+    const list = state.messages.get(contact.id) || [];
+    if (!list.some((item) => Number(item.id) === Number(message.id))) list.push(message);
+    state.messages.set(contact.id, list);
+    if (state.activeId === contact.id && !els.activeChat.hidden) window.UI.addMessage(message, state.user.id, showMessageMenu);
+    if (contact.id !== state.user.id) bumpLastMessage(message, contact.id);
+  }
+  let uploadLabel = '';
+  function showUpload(name) {
+    uploadLabel = name;
+    els.uploadName.textContent = name;
+    els.uploadFill.style.width = '0%';
+    els.uploadStatus.hidden = false;
+  }
+  function setUploadProgress(ratio, totalBytes) {
+    const percent = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+    els.uploadFill.style.width = `${percent}%`;
+    els.uploadName.textContent = `${uploadLabel} — ${percent}%${totalBytes ? ` من ${readableSize(totalBytes)}` : ''}`;
+  }
+  function hideUpload() {
+    els.uploadStatus.hidden = true;
+    els.uploadFill.style.width = '0%';
+    uploadLabel = '';
+  }
+  async function handleFiles(fileList) {
+    const contact = currentContact();
+    const files = [...(fileList || [])];
+    if (!files.length) return;
+    if (!contact) { window.UI.showToast('اختر محادثة أولاً لإرسال الملفات.', 'error'); els.fileInput.value = ''; return; }
+    const limit = window.API.maxUploadBytes || 50 * 1024 * 1024;
+    let cancelled = false;
+    for (const file of files) {
+      if (file.size > limit) {
+        window.UI.showToast(`«${file.name}» أكبر من ${Math.round(limit / (1024 * 1024))} ميجابايت ولن يُرسل.`, 'error', 4200);
+        continue;
+      }
+      if (!file.size) { window.UI.showToast(`«${file.name}» فارغ ولن يُرسل.`, 'error'); continue; }
+      showUpload(file.name);
+      try {
+        const uploaded = await window.API.uploadFile(file, (ratio) => setUploadProgress(ratio, file.size));
+        const caption = els.messageInput.value.trim();
+        if (caption) { els.messageInput.value = ''; resizeTextarea(); window.API.saveDraft(contact.id, '').catch(() => {}); }
+        hideUpload();
+        const message = await window.SocketService.send(contact.id, caption, { kind: detectKind(file), attachmentId: uploaded.id });
+        afterSent(contact, message);
+      } catch (error) {
+        hideUpload();
+        if (error?.aborted) { cancelled = true; window.UI.showToast('تم إلغاء الرفع.'); }
+        else showError(error);
+        if (cancelled) break;
+      }
+    }
+    els.fileInput.value = '';
+  }
+  function closeStickers() { els.stickerPanel.hidden = true; }
+  function toggleStickers() {
+    if (!els.stickerPanel.hidden) { closeStickers(); return; }
+    const pack = window.StickerPack?.items || [];
+    els.stickerGrid.replaceChildren();
+    for (const sticker of pack) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.title = sticker.label || sticker.id;
+      button.setAttribute('aria-label', sticker.label || sticker.id);
+      const image = document.createElement('img');
+      image.src = `assets/stickers/${encodeURIComponent(sticker.id)}.svg`;
+      image.alt = sticker.label || 'ملصق';
+      image.loading = 'lazy';
+      image.draggable = false;
+      button.append(image);
+      button.addEventListener('click', async () => {
+        closeStickers();
+        const contact = currentContact();
+        if (!contact) return;
+        try {
+          const message = await window.SocketService.send(contact.id, '', { kind: 'sticker', sticker: sticker.id });
+          afterSent(contact, message);
+        } catch (error) { showError(error); }
+      });
+      els.stickerGrid.append(button);
+    }
+    if (!pack.length) {
+      const empty = document.createElement('p');
+      empty.className = 'sticker-empty';
+      empty.textContent = 'الملصقات غير متاحة.';
+      els.stickerGrid.append(empty);
+    }
+    els.stickerPanel.hidden = false;
+  }
   async function submitMessage(event) {
     event.preventDefault();
     const text = els.messageInput.value.trim();
@@ -714,14 +820,28 @@
     document.querySelector('#close-chat-search').addEventListener('click', window.UI.closeSearchMessage);
     els.chatSearchInput.addEventListener('input', () => window.UI.highlightMessages(els.chatSearchInput.value));
     document.querySelector('#chat-more-button').addEventListener('click', () => window.UI.showToast('المحادثات تُدار من قائمة جهات الاتصال.'));
-    document.querySelector('#emoji-button').addEventListener('click', () => { const emoji = '😊'; const start = els.messageInput.selectionStart; const end = els.messageInput.selectionEnd; els.messageInput.setRangeText(emoji, start, end, 'end'); els.messageInput.focus(); inputTyping(); });
-    document.querySelector('#attach-button').addEventListener('click', () => window.UI.showToast('إرفاق الملفات غير متاح حالياً.'));
+    document.querySelector('#emoji-button').addEventListener('click', toggleStickers);
+    document.querySelector('#attach-button').addEventListener('click', () => { if (!currentContact()) { window.UI.showToast('اختر محادثة أولاً لإرسال الملفات.', 'error'); return; } els.fileInput.click(); });
+    els.fileInput.addEventListener('change', () => handleFiles(els.fileInput.files));
+    els.cancelUpload.addEventListener('click', window.API.cancelUpload);
+    els.closeStickers.addEventListener('click', closeStickers);
+    document.addEventListener('click', (event) => {
+      if (els.stickerPanel.hidden) return;
+      if (els.stickerPanel.contains(event.target) || event.target.closest('#emoji-button')) return;
+      closeStickers();
+    });
+    els.messageInput.addEventListener('paste', (event) => {
+      const files = [...(event.clipboardData?.files || [])];
+      if (!files.length) return;
+      event.preventDefault();
+      handleFiles(files);
+    });
     els.installButton.addEventListener('click', window.UI.installApp);
     window.addEventListener('beforeinstallprompt', (event) => { event.preventDefault(); window.UI.setInstallPrompt(event); });
     window.addEventListener('appinstalled', () => window.UI.setInstallPrompt(null));
     document.addEventListener('keydown', (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); if (els.messengerScreen.hidden) return; showSearch(); }
-      if (event.key === 'Escape') { if (!els.chatSearchBar.hidden) window.UI.closeSearchMessage(); else if (els.messengerScreen.classList.contains('chat-open')) window.UI.closeChatLayout(); }
+      if (event.key === 'Escape') { if (!els.stickerPanel.hidden) closeStickers(); else if (!els.chatSearchBar.hidden) window.UI.closeSearchMessage(); else if (els.messengerScreen.classList.contains('chat-open')) window.UI.closeChatLayout(); }
     });
   }
   async function loadSocketScript() {

@@ -18,7 +18,14 @@ assert.match(ui, /text\.textContent = message\.text/);
 assert.doesNotMatch(ui, /innerHTML/);
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/);
 assert.match(sw, /url\.pathname\.startsWith\('\/socket.io\/'\)/);
-assert.match(sw, /bird-shell-v6/);
+assert.match(sw, /bird-shell-v7/);
+assert.match(sw, /js\/stickers\.js/);
+assert.match(html, /js\/stickers\.js/);
+assert.match(html, /id="file-input"/);
+assert.match(html, /id="sticker-grid"/);
+assert.match(app, /uploadFile\(/);
+assert.match(app, /maxUploadBytes/);
+assert.match(app, /kind: 'sticker'/);
 assert.match(sw, /event\.respondWith\(fetch\(request\)/);
 for (const id of ['drawer', 'compose-fab', 'nav-chats', 'nav-contacts', 'nav-calls', 'nav-settings', 'voice-call-button', 'video-call-button', 'call-layer', 'remote-video', 'local-video', 'accept-call-button', 'hangup-call-button']) {
   assert.match(html, new RegExp(`id="${id}"`));
