@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Bird — مراسلة فورية، خفيفة وسريعة.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <title>Bird — رسائلك</title>
+</head>
+<body>
+
+<svg class="bird-sprite-hidden" aria-hidden="true"><defs>
+  <symbol id="i-bird" viewBox="0 0 24 24"><path fill="currentColor" d="M4.6 8.2c2.2 4.7 6.1 6.7 10.4 6.7 2.5 0 4.6-.8 6.3-2.1l-3.4-4.8 2.6-1.4-4.2 1.3-1.2-3.2-.6 2.6c-3.3 1.5-7 1.8-9.9.9Z"/><circle cx="15.6" cy="6.7" r=".8" fill="currentColor"/></symbol>
+</defs></svg>
+
+<main id="app" class="app-shell" aria-live="polite">
+
+  <!-- ============ AUTH ============ -->
+  <section id="auth-screen" class="auth-screen" hidden>
+    <div class="auth-card">
+      <div class="brand-mark" aria-hidden="true"><svg class="ic-xl"><use href="assets/icons.svg#i-bird"/></svg></div>
+      <p class="eyebrow">Bird</p>
+      <h1 id="auth-title">أهلاً بعودتك</h1>
+      <p class="muted auth-copy">سجّل الدخول لتكمل محادثاتك</p>
+      <div class="auth-tabs" role="tablist" aria-label="نوع الحساب">
+        <button id="login-tab" class="auth-tab active" type="button" role="tab" aria-selected="true">تسجيل الدخول</button>
+        <button id="register-tab" class="auth-tab" type="button" role="tab" aria-selected="false">حساب جديد</button>
+      </div>
+      <form id="auth-form" class="stack-form">
+        <label for="auth-username">اسم المستخدم</label>
+        <input id="auth-username" name="username" autocomplete="username" minlength="5" maxlength="32" pattern="[A-Za-z0-9_]+" placeholder="مثال: sara_92" required>
+        <label for="auth-password">كلمة المرور</label>
+        <input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="72" placeholder="8 أحرف على الأقل" required>
+        <p id="auth-error" class="inline-error" role="alert" hidden></p>
+        <button id="auth-submit" class="button button-primary button-wide" type="submit">دخول</button>
+      </form>
+      <p class="auth-footnote">بياناتك محفوظة بأمان. لا تشارك رمز الدخول مع أحد.</p>
+    </div>
+  </section>
+
+  <!-- ============ MAIN APP ============ -->
+  <section id="messenger-screen" class="messenger-screen" hidden>
+
+    <!-- ---- Side drawer ---- -->
+    <div id="drawer-backdrop" class="backdrop" hidden></div>
+    <nav id="drawer" class="drawer" aria-label="القائمة" tabindex="-1">
+      <div class="drawer-profile">
+        <div id="drawer-avatar" class="avatar avatar-lg avatar-color-1">م</div>
+        <div class="drawer-profile-info"><strong id="drawer-name">مستخدم</strong><span id="drawer-username">@user</span></div>
+      </div>
+      <button class="drawer-item" data-drawer="new-group"><svg class="ic"><use href="assets/icons.svg#i-users"/></svg><span>مجموعة جديدة</span></button>
+      <button class="drawer-item" data-drawer="new-channel"><svg class="ic"><use href="assets/icons.svg#i-megaphone"/></svg><span>قناة جديدة</span></button>
+      <button class="drawer-item" data-drawer="contacts"><svg class="ic"><use href="assets/icons.svg#i-user"/></svg><span>جهات الاتصال</span></button>
+      <button class="drawer-item" data-drawer="calls"><svg class="ic"><use href="assets/icons.svg#i-phone"/></svg><span>المكالمات</span></button>
+      <button class="drawer-item" data-drawer="saved"><svg class="ic"><use href="assets/icons.svg#i-bookmark"/></svg><span>الرسائل المحفوظة</span></button>
+      <div class="drawer-divider"></div>
+      <button class="drawer-item" data-drawer="settings"><svg class="ic"><use href="assets/icons.svg#i-settings"/></svg><span>الإعدادات</span></button>
+      <button class="drawer-item" data-drawer="theme"><svg class="ic" id="drawer-theme-icon"><use href="assets/icons.svg#i-moon"/></svg><span>المظهر الداكن</span></button>
+      <button class="drawer-item" data-drawer="invite"><svg class="ic"><use href="assets/icons.svg#i-user-plus"/></svg><span>دعوة أصدقاء</span></button>
+    </nav>
+
+    <!-- ---- List screen (sidebar on desktop) ---- -->
+    <div id="list-screen" class="list-screen">
+      <header class="topbar">
+        <a class="brand" href="#" id="brand-home" aria-label="Bird">
+          <svg class="brand-bird" aria-hidden="true"><use href="assets/icons.svg#i-bird"/></svg>
+          <span class="wordmark">Bird</span>
+        </a>
+        <div class="header-actions">
+          <button id="top-search-button" class="icon-button" type="button" aria-label="بحث"><svg class="ic"><use href="assets/icons.svg#i-search"/></svg></button>
+          <button id="drawer-button" class="icon-button" type="button" aria-label="القائمة"><svg class="ic"><use href="assets/icons.svg#i-menu"/></svg></button>
+        </div>
+      </header>
+
+      <div class="search-wrap">
+        <label class="search-box" aria-label="بحث">
+          <svg class="ic search-ic"><use href="assets/icons.svg#i-search"/></svg>
+          <input id="conversation-filter" type="search" placeholder="ابحث في المحادثات وجهات الاتصال..." autocomplete="off">
+        </label>
+      </div>
+      <div class="folder-tabs" id="folder-tabs" role="tablist" aria-label="مجلدات المحادثات">
+        <button class="folder-tab active" data-folder="all" type="button">الكل</button>
+        <button class="folder-tab" data-folder="personal" type="button">شخصية</button>
+        <button class="folder-tab" data-folder="groups" type="button">المجموعات</button>
+        <button class="folder-tab" data-folder="channels" type="button">القنوات</button>
+        <button class="folder-tab" data-folder="archived" type="button">الأرشيف</button>
+      </div>
+
+      <div id="connection-banner" class="connection-banner" hidden><span id="connection-status" class="connection-status"><i class="presence-dot"></i><span>جارٍ الاتصال...</span></span></div>
+
+      <div class="panels">
+        <section id="chats-panel" class="panel">
+          <div id="chats-skeleton" class="skeleton-rows" hidden></div>
+          <div id="chats-list" class="chats-list"></div>
+          <div id="chats-empty" class="empty-state" hidden>
+            <svg class="empty-illustration" viewBox="0 0 24 24"><use href="assets/icons.svg#i-message-circle"/></svg>
+            <h2>محادثاتك تبدأ هنا</h2>
+            <p>ابحث عن شخص تعرفه وابدأ محادثتك الأولى.</p>
+            <button class="button button-primary" data-open-search type="button">ابدأ محادثة</button>
+          </div>
+          <div id="chats-filter-empty" class="empty-state" hidden><p>لا توجد نتائج لهذا البحث.</p></div>
+          <span id="chats-total" class="badge-total" hidden>0</span>
+        </section>
+
+        <section id="contacts-panel" class="panel" hidden>
+          <div class="panel-heading"><h2>جهات الاتصال</h2></div>
+          <div id="contacts-list" class="chats-list"></div>
+          <div id="contacts-empty" class="empty-state" hidden><svg class="empty-illustration" viewBox="0 0 24 24"><use href="assets/icons.svg#i-users"/></svg><p>لا توجد جهات اتصال بعد. ابحث وأضف أصدقاءك.</p></div>
+        </section>
+
+        <section id="calls-panel" class="panel" hidden>
+          <div class="panel-heading"><h2>المكالمات</h2></div>
+          <div id="calls-list" class="chats-list"></div>
+          <div id="calls-empty" class="empty-state" hidden><svg class="empty-illustration" viewBox="0 0 24 24"><use href="assets/icons.svg#i-phone"/></svg><p>لا توجد مكالمات بعد.</p></div>
+        </section>
+
+        <section id="settings-panel" class="panel settings-panel" hidden>
+          <div class="panel-heading"><h2>الإعدادات</h2></div>
+          <div class="settings-card profile-card">
+            <div id="settings-avatar" class="avatar avatar-xl avatar-color-1">م</div>
+            <div class="settings-profile-head"><strong id="settings-name">مستخدم</strong><span id="settings-username">@user</span><span id="current-avatar" hidden></span><span id="current-username" hidden></span></div>
+          </div>
+          <form id="profile-form" class="settings-card settings-form">
+            <h3>الملف الشخصي</h3>
+            <div class="avatar-upload-wrap">
+              <div id="profile-avatar" class="avatar avatar-xl avatar-color-1" tabindex="0" role="button" aria-label="تغيير الصورة الشخصية"></div>
+              <input id="avatar-input" type="file" accept="image/jpeg,image/png,image/webp" hidden aria-label="اختر صورة">
+              <canvas id="crop-canvas" hidden></canvas>
+              <div id="avatar-preview" class="avatar-preview" hidden></div>
+            </div>
+            <label for="profile-display-name">الاسم الظاهر</label>
+            <input id="profile-display-name" maxlength="64" placeholder="اسمك">
+            <div class="username-field">
+              <label for="profile-username">@username</label>
+              <div class="username-input-wrap">
+                <span class="at-prefix">@</span>
+                <input id="profile-username" pattern="[A-Za-z0-9_]{5,32}" placeholder="username" autocomplete="off">
+                <span id="username-check-spinner" class="spinner" hidden></span>
+              </div>
+              <span id="username-available" class="helper-text"></span>
+              <p class="helper-text">يمكن تغيير اسم المستخدم مرة كل 24 ساعة.</p>
+            </div>
+            <label for="profile-bio">نبذة <span id="bio-counter">0</span>/140</label>
+            <textarea id="profile-bio" rows="2" maxlength="140" placeholder="اكتب نبذة عنك..."></textarea>
+            <p id="profile-hint" class="helper-text"></p>
+            <button class="button button-primary" type="submit">حفظ الملف</button>
+          </form>
+          <details class="settings-card">
+            <summary><svg class="ic"><use href="assets/icons.svg#i-image"/></svg><span>الصورة الشخصية</span></summary>
+            <div class="settings-form">
+              <button type="button" class="button button-secondary" id="avatar-history-btn">سجل الصور <span class="badge" id="avatar-count">0</span></button>
+              <button type="button" class="button button-ghost-danger" id="remove-avatar-btn">إزالة الصورة الحالية</button>
+            </div>
+          </details>
+          <details class="settings-card">
+            <summary><svg class="ic"><use href="assets/icons.svg#i-shield"/></svg><span>الخصوصية والأمان</span></summary>
+            <div class="settings-form">
+              <h4>آخر ظهور وحالة الاتصال</h4>
+              <label for="privacy-last-seen">من يرى آخر ظهور:</label>
+              <select id="privacy-last-seen">
+                <option value="everyone">الجميع</option>
+                <option value="contacts">جهات الاتصال فقط</option>
+                <option value="nobody">لا أحد</option>
+              </select>
+              <h4>من يمكنه إضافتي للمجموعات</h4>
+              <label for="privacy-groups">إضافة للمجموعات:</label>
+              <select id="privacy-groups">
+                <option value="everyone">الجميع</option>
+                <option value="contacts">جهات الاتصال فقط</option>
+              </select>
+              <h4>المستخدمون المحظورون</h4>
+              <div id="blocked-list" class="blocked-list"></div>
+              <div id="blocked-empty" class="empty-state" hidden><p>لا يوجد مستخدمون محظورون</p></div>
+              <h4>الجلسات النشطة</h4>
+              <div id="sessions-list" class="sessions-list"></div>
+              <div id="sessions-empty" class="empty-state" hidden><p>لا توجد جلسات أخرى</p></div>
+              <h4>تغيير كلمة المرور</h4>
+              <form id="change-password-form" class="settings-form">
+                <label for="old-password">كلمة المرور الحالية</label>
+                <input id="old-password" type="password" autocomplete="current-password" required>
+                <label for="new-password">كلمة المرور الجديدة</label>
+                <input id="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
+                <button class="button button-primary" type="submit">تغيير كلمة المرور</button>
+              </form>
+              <h4>حذف الحساب</h4>
+              <p class="helper-text danger">هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بياناتك الشخصية.</p>
+              <button type="button" class="button button-ghost-danger" id="delete-account-btn">حذف الحساب</button>
+            </div>
+          </details>
+          <div class="settings-card settings-row"><svg class="ic"><use href="assets/icons.svg#i-globe"/></svg><label for="language-select">اللغة</label>
+            <select id="language-select"><option value="ar" selected>العربية</option><option value="en">English</option><option value="ckb">کوردی</option></select>
+          </div>
+          <div class="settings-card settings-row"><svg class="ic" id="settings-theme-icon"><use href="assets/icons.svg#i-moon"/></svg><span>المظهر الداكن</span><button id="theme-button" class="switch" type="button" role="switch" aria-checked="false"><span class="switch-knob"></span></button></div>
+          <div class="settings-card settings-row"><svg class="ic"><use href="assets/icons.svg#i-lock"/></svg><span>الحساب</span><button id="logout-button" class="button button-ghost-danger" type="button"><svg class="ic"><use href="assets/icons.svg#i-log-out"/></svg>تسجيل الخروج</button></div>
+          <p class="about-note">Bird · الإصدار 2.0 · مراسلة خفيفة وسريعة</p>
+        </section>
+      </div>
+
+      <button id="compose-fab" class="fab" type="button" aria-label="محادثة جديدة"><svg class="ic"><use href="assets/icons.svg#i-pencil"/></svg></button>
+      <button id="install-button" class="install-button" type="button" hidden><svg class="ic"><use href="assets/icons.svg#i-download"/></svg>تثبيت</button>
+
+      <nav class="bottomnav" aria-label="التنقل الرئيسي">
+        <button class="nav-item active" id="nav-chats" data-nav="chats"><span class="nav-ic-wrap"><svg class="ic"><use href="assets/icons.svg#i-message-circle"/></svg><span id="nav-unread" class="nav-badge" hidden>0</span></span><span class="nav-label">المحادثات</span></button>
+        <button class="nav-item" id="nav-contacts" data-nav="contacts"><span class="nav-ic-wrap"><svg class="ic"><use href="assets/icons.svg#i-users"/></svg></span><span class="nav-label">جهات الاتصال</span></button>
+        <button class="nav-item" id="nav-calls" data-nav="calls"><span class="nav-ic-wrap"><svg class="ic"><use href="assets/icons.svg#i-phone"/></svg></span><span class="nav-label">المكالمات</span></button>
+        <button class="nav-item" id="nav-settings" data-nav="settings"><span class="nav-ic-wrap"><svg class="ic"><use href="assets/icons.svg#i-settings"/></svg></span><span class="nav-label">الإعدادات</span></button>
+      </nav>
+    </div>
+
+    <!-- ---- Chat pane ---- -->
+    <section id="chat-pane" class="chat-pane" aria-label="نافذة المحادثة">
+      <div id="welcome-view" class="welcome-view">
+        <div class="welcome-art" aria-hidden="true"><svg class="welcome-bird"><use href="assets/icons.svg#i-bird"/></svg></div>
+        <h1>Bird</h1><p>اختر محادثة من القائمة لتبدأ.</p>
+      </div>
+      <div id="active-chat" class="active-chat" hidden>
+        <header class="chat-header">
+          <button id="back-to-list" class="icon-button mobile-back" type="button" aria-label="العودة"><svg class="ic"><use href="assets/icons.svg#i-arrow-left"/></svg></button>
+          <div id="chat-avatar" class="avatar avatar-color-2">م</div>
+          <button class="chat-peer" id="chat-profile-button" type="button"><h2 id="chat-username">اسم المستخدم</h2><p id="chat-presence" class="peer-status">غير متصل</p></button>
+          <div class="chat-header-tools">
+            <button id="voice-call-button" class="icon-button" type="button" aria-label="مكالمة صوتية" title="مكالمة صوتية"><svg class="ic"><use href="assets/icons.svg#i-phone"/></svg></button>
+            <button id="video-call-button" class="icon-button" type="button" aria-label="مكالمة فيديو" title="مكالمة فيديو"><svg class="ic"><use href="assets/icons.svg#i-video"/></svg></button>
+            <button id="chat-search-button" class="icon-button" type="button" aria-label="بحث في الرسائل"><svg class="ic"><use href="assets/icons.svg#i-search"/></svg></button>
+            <button id="chat-more-button" class="icon-button" type="button" aria-label="خيارات"><svg class="ic"><use href="assets/icons.svg#i-ellipsis-vertical"/></svg></button>
+          </div>
+        </header>
+        <div id="chat-search-bar" class="chat-search-bar" hidden><input id="chat-search-input" type="search" placeholder="ابحث في هذه المحادثة"><span id="chat-search-count"></span><button id="close-chat-search" class="icon-button" type="button" aria-label="إغلاق"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button></div>
+        <div id="messages-container" class="messages-container" role="log" aria-label="الرسائل">
+          <button id="load-older" class="load-older" type="button" hidden>تحميل رسائل أقدم</button>
+          <div id="message-list" class="message-list"></div>
+          <div id="typing-indicator" class="typing-indicator" hidden><span class="typing-dots"><i></i><i></i><i></i></span><span id="typing-label">يكتب...</span></div>
+        </div>
+        <div id="reply-bar" class="reply-bar" hidden><span id="reply-preview"></span><button id="cancel-reply" class="icon-button" type="button" aria-label="إلغاء"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button></div>
+        <div id="upload-status" class="upload-status" hidden>
+          <svg class="ic"><use href="assets/icons.svg#i-paperclip"/></svg>
+          <span id="upload-name">جارٍ الرفع...</span>
+          <span class="upload-bar"><i id="upload-fill"></i></span>
+          <button id="cancel-upload" class="icon-button" type="button" aria-label="إلغاء الرفع"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button>
+        </div>
+        <div id="sticker-panel" class="sticker-panel" hidden aria-label="الملصقات">
+          <div class="sticker-head"><strong>الملصقات</strong><button id="close-stickers" class="icon-button" type="button" aria-label="إغلاق"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button></div>
+          <div id="sticker-grid" class="sticker-grid"></div>
+        </div>
+        <form id="composer" class="composer">
+          <button id="emoji-button" class="composer-tool" type="button" aria-label="الملصقات"><svg class="ic"><use href="assets/icons.svg#i-smile"/></svg></button>
+          <button id="attach-button" class="composer-tool" type="button" aria-label="إرفاق ملف"><svg class="ic"><use href="assets/icons.svg#i-paperclip"/></svg></button>
+          <input id="file-input" type="file" multiple hidden>
+          <textarea id="message-input" rows="1" maxlength="4000" placeholder="اكتب رسالة..." aria-label="اكتب رسالتك"></textarea>
+          <button id="send-button" class="send-button" type="submit" aria-label="إرسال"><svg class="ic"><use href="assets/icons.svg#i-send"/></svg></button>
+        </form>
+      </div>
+      <button id="scroll-down" class="scroll-down" type="button" hidden><svg class="ic"><use href="assets/icons.svg#i-chevron-down"/></svg><span id="scroll-unread"></span></button>
+    </section>
+
+    <div id="call-layer" class="call-layer" hidden>
+      <div class="call-card">
+        <div id="call-video-area" class="call-video-area" hidden>
+          <video id="remote-video" class="remote-video" autoplay playsinline></video>
+          <video id="local-video" class="local-video" autoplay playsinline muted></video>
+        </div>
+        <div id="call-glyph" class="call-glyph"><svg class="ic-xl"><use href="assets/icons.svg#i-phone"/></svg></div>
+        <h2 id="call-name">—</h2>
+        <p id="call-kind-label" class="call-kind-label"></p>
+        <p id="call-status" class="call-status">جارٍ الاتصال...</p>
+        <p id="call-timer" class="call-timer" hidden>00:00</p>
+        <div class="call-actions">
+          <button id="accept-call-button" class="call-button accept" type="button" hidden><svg class="ic"><use href="assets/icons.svg#i-phone"/></svg><span>قبول</span></button>
+          <button id="mute-call-button" class="call-button" type="button" aria-label="كتم الصوت" hidden><svg class="ic"><use href="assets/icons.svg#i-mic"/></svg><span>كتم</span></button>
+          <button id="camera-call-button" class="call-button" type="button" aria-label="الكاميرا" hidden><svg class="ic"><use href="assets/icons.svg#i-video"/></svg><span>الكاميرا</span></button>
+          <button id="reject-call-button" class="call-button reject" type="button" hidden><svg class="ic"><use href="assets/icons.svg#i-x"/></svg><span>رفض</span></button>
+          <button id="hangup-call-button" class="call-button reject" type="button" aria-label="إنهاء"><svg class="ic"><use href="assets/icons.svg#i-phone-off"/></svg><span>إنهاء</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- New-chat / people search sheet ---- -->
+    <section id="search-panel" class="panel sheet" hidden>
+      <div class="sheet-header"><h2>محادثة جديدة</h2><button id="close-search-panel" class="icon-button" aria-label="إغلاق"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button></div>
+      <label class="search-box"><svg class="ic search-ic"><use href="assets/icons.svg#i-search"/></svg><input id="people-query" type="search" placeholder="ابحث باسم المستخدم (@username)" maxlength="32" autocomplete="off"><button id="clear-people-search" class="clear-search" type="button" aria-label="مسح" hidden>×</button></label>
+      <div id="search-results" class="search-results"></div>
+    </section>
+  </section>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="message-menu" class="message-menu" hidden></div>
+
+  <!-- Avatar History Modal -->
+  <div id="avatar-history-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="avatar-history-title">
+    <div class="modal-backdrop" tabindex="-1"></div>
+    <div class="modal-content">
+      <header class="modal-header">
+        <h2 id="avatar-history-title">سجل الصور الشخصية</h2>
+        <button class="icon-button" id="avatar-history-close" aria-label="إغلاق"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button>
+      </header>
+      <div id="avatar-history-list" class="avatar-history-grid"></div>
+    </div>
+  </div>
+
+  <!-- User Profile View Modal -->
+  <div id="profile-view-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="profile-view-name">
+    <div class="modal-backdrop" tabindex="-1"></div>
+    <div class="modal-content profile-view-content">
+      <header class="modal-header">
+        <div id="profile-view-avatar" class="avatar avatar-xl avatar-color-1">م</div>
+        <div>
+          <h2 id="profile-view-name">اسم المستخدم</h2>
+          <span id="profile-view-username" class="username">@username</span>
+        </div>
+        <button class="icon-button" id="profile-view-close" aria-label="إغلاق"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button>
+      </header>
+      <div class="profile-view-body">
+        <p id="profile-view-bio" class="bio"></p>
+        <div class="profile-view-meta">
+          <span id="profile-view-last-seen" class="meta-item"><svg class="ic"><use href="assets/icons.svg#i-clock"/></svg><span>آخر ظهور: —</span></span>
+        </div>
+        <div class="profile-view-common-groups">
+          <h4>المجموعات المشتركة</h4>
+          <div id="profile-view-common-groups" class="groups-list"><p class="helper-text">لا توجد مجموعات مشتركة</p></div>
+        </div>
+        <div class="profile-view-actions">
+          <button id="profile-view-message" class="button button-primary"><svg class="ic"><use href="assets/icons.svg#i-message-circle"/></svg><span>مراسلة</span></button>
+          <button id="profile-view-add-contact" class="button button-secondary"><svg class="ic"><use href="assets/icons.svg#i-user-plus"/></svg><span>إضافة للجهات</span></button>
+          <button id="profile-view-mute" class="button button-ghost"><svg class="ic"><use href="assets/icons.svg#i-bell-off"/></svg><span>كتم</span></button>
+          <button id="profile-view-block" class="button button-ghost-danger"><svg class="ic"><use href="assets/icons.svg#i-ban"/></svg><span>حظر</span></button>
+          <button id="profile-view-report" class="button button-ghost-danger"><svg class="ic"><use href="assets/icons.svg#i-flag"/></svg><span>إبلاغ</span></button>
+        </div>
+        <div class="profile-view-tabs" role="tablist">
+          <button role="tab" id="profile-view-media-tab" class="tab-btn active" data-tab="media">الوسائط</button>
+          <button role="tab" id="profile-view-files-tab" class="tab-btn" data-tab="files">الملفات</button>
+          <button role="tab" id="profile-view-links-tab" class="tab-btn" data-tab="links">الروابط</button>
+        </div>
+        <div class="tab-panels">
+          <div role="tabpanel" id="profile-view-media" class="tab-panel active"><p class="helper-text">لا توجد وسائط مشتركة بعد</p></div>
+          <div role="tabpanel" id="profile-view-files" class="tab-panel" hidden><p class="helper-text">لا توجد ملفات مشتركة بعد</p></div>
+          <div role="tabpanel" id="profile-view-links" class="tab-panel" hidden><p class="helper-text">لا توجد روابط مشتركة بعد</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Account Confirmation Modal -->
+  <div id="delete-account-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
+    <div class="modal-backdrop" tabindex="-1"></div>
+    <div class="modal-content confirm-modal">
+      <h2 id="delete-account-title">حذف الحساب</h2>
+      <p class="warning-text">هذا الإجراء <strong>لا يمكن التراجع عنه</strong>. سيتم حذف:</p>
+      <ul>
+        <li>ملفك الشخصي (الاسم، الصورة، النبذة)</li>
+        <li>جهات اتصالك والمحادثات</li>
+        <li>جميع جلساتك النشطة</li>
+        <li>الرسائل ستظهر كـ "مستخدم محذوف"</li>
+      </ul>
+      <label for="delete-account-confirm">اكتب "حذف" للتأكيد:</label>
+      <input id="delete-account-confirm" type="text" placeholder="حذف" autocomplete="off">
+      <div class="modal-actions">
+        <button class="button button-secondary" id="delete-account-cancel">إلغاء</button>
+        <button class="button button-danger" id="delete-account-submit" disabled>حذف حسابي</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+    window.TURN_URL = '';
+    window.TURN_USER = '';
+    window.TURN_PASS = '';
+  </script>
+  <script src="config.js"></script>
+<script src="js/stickers.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/socket.js"></script>
+<script src="js/health.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
