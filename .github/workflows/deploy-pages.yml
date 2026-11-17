@@ -1,9 +1,8 @@
-name: Deploy Bird client to GitHub Pages
+﻿name: Deploy Bird client to GitHub Pages
 on:
   push:
     branches: [main]
-    paths:
-      - 'messenger-client/**'
+    paths:\n      - 'messenger-client/**'\n      - 'config.js'\n      - 'index.html'\n      - 'js/**'\n      - 'css/**'\n      - 'assets/**'\n      - 'fonts/**'\n      - 'icons/**'\n      - 'manifest.json'\n      - 'service-worker.js'\n      - 'netlify.toml'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 permissions:
@@ -27,3 +26,4 @@ jobs:
           path: messenger-client
       - id: deployment
         uses: actions/deploy-pages@v4
+
