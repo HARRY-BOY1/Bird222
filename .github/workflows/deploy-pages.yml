@@ -2,16 +2,30 @@
 on:
   push:
     branches: [main]
-    paths:\n      - 'messenger-client/**'\n      - 'config.js'\n      - 'index.html'\n      - 'js/**'\n      - 'css/**'\n      - 'assets/**'\n      - 'fonts/**'\n      - 'icons/**'\n      - 'manifest.json'\n      - 'service-worker.js'\n      - 'netlify.toml'
+    paths:
+      - 'messenger-client/**'
+      - 'config.js'
+      - 'index.html'
+      - 'js/**'
+      - 'css/**'
+      - 'assets/**'
+      - 'fonts/**'
+      - 'icons/**'
+      - 'manifest.json'
+      - 'service-worker.js'
+      - 'netlify.toml'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -23,7 +37,6 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: messenger-client
+          path: .
       - id: deployment
         uses: actions/deploy-pages@v4
-
