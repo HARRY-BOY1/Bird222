@@ -1,7 +1,7 @@
-// One place to switch the server address.
+﻿// One place to switch the server address.
 // Local: http://localhost:3001 | Phone on same Wi-Fi: http://<computer-ip>:3001
-// Production (Render): https://messenger-server-xxxx.onrender.com
-const SERVER_URL = 'https://moisture-heater-consistent-martin.trycloudflare.com';
+// Production (Railway): https://soakalshorja-production.up.railway.app
+const SERVER_URL = 'https://soakalshorja-production.up.railway.app';
 
 function turnServers() {
   const url = window.TURN_URL && window.TURN_URL.trim();
@@ -22,3 +22,4 @@ window.APP_CONFIG = Object.freeze({
     ...turnServers(),
   ],
 });
+
