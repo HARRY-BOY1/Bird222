@@ -9,7 +9,7 @@ const ui = fs.readFileSync(path.join(root, 'js/ui.js'), 'utf8');
 const sw = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 
-assert.match(html, /<html lang="ar" dir="rtl">/);
+assert.match(html, /<html lang="ar" dir="rtl"(?: data-theme="dark")?>/);
 assert.match(html, /js\/api\.js/);
 assert.match(html, /js\/socket\.js/);
 assert.match(app, /SocketService\.read\(/);
@@ -18,7 +18,7 @@ assert.match(ui, /text\.textContent = message\.text/);
 assert.doesNotMatch(ui, /innerHTML/);
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/);
 assert.match(sw, /url\.pathname\.startsWith\('\/socket.io\/'\)/);
-assert.match(sw, /bird-shell-v9/);
+assert.match(sw, /bird-shell-v11/);
 assert.match(sw, /js\/stickers\.js/);
 assert.match(html, /js\/stickers\.js/);
 assert.match(html, /id="file-input"/);
@@ -32,9 +32,10 @@ assert.doesNotMatch(app, /مستخدم \$\{/);
 assert.match(app, /users: new Map/);
 assert.match(app, /function cacheUser/);
 assert.match(app, /getDisplayName\(/);
-for (const id of ['drawer', 'compose-fab', 'nav-chats', 'nav-contacts', 'nav-calls', 'nav-settings', 'voice-call-button', 'video-call-button', 'call-layer', 'remote-video', 'local-video', 'accept-call-button', 'hangup-call-button']) {
+for (const id of ['drawer', 'compose-fab', 'nav-chats', 'nav-contacts', 'nav-settings', 'nav-profile', 'voice-call-button', 'video-call-button', 'call-layer', 'remote-video', 'local-video', 'accept-call-button', 'hangup-call-button']) {
   assert.match(html, new RegExp(`id="${id}"`));
 }
+assert.match(html, /data-drawer="calls"/);
 for (const font of ['cairo-400-arabic.woff2', 'inter-400-latin.woff2', 'pacifico-400-latin.woff2']) {
   assert.ok(fs.existsSync(path.join(root, 'fonts', font)), `missing font ${font}`);
 }

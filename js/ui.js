@@ -6,7 +6,7 @@
     authUsername: $('#auth-username'), authPassword: $('#auth-password'), authSubmit: $('#auth-submit'), authError: $('#auth-error'),
     loginTab: $('#login-tab'), registerTab: $('#register-tab'),
     listScreen: $('#list-screen'), chatsPanel: $('#chats-panel'), searchPanel: $('#search-panel'), contactsPanel: $('#contacts-panel'),
-    callsPanel: $('#calls-panel'), settingsPanel: $('#settings-panel'),
+    callsPanel: $('#calls-panel'), settingsPanel: $('#settings-panel'), profilePanel: $('#profile-panel'), accountPanel: $('#account-panel'),
     chatsList: $('#chats-list'), chatsEmpty: $('#chats-empty'), chatsFilterEmpty: $('#chats-filter-empty'), chatsTotal: $('#chats-total'),
     chatsSkeleton: $('#chats-skeleton'), contactsList: $('#contacts-list'), contactsEmpty: $('#contacts-empty'),
     callsList: $('#calls-list'), callsEmpty: $('#calls-empty'),
@@ -20,7 +20,7 @@
     toast: $('#toast'), installButton: $('#install-button'), fab: $('#compose-fab'),
     drawer: $('#drawer'), backdrop: $('#drawer-backdrop'), drawerName: $('#drawer-name'), drawerUsername: $('#drawer-username'), drawerAvatar: $('#drawer-avatar'),
     settingsName: $('#settings-name'), settingsUsername: $('#settings-username'), settingsAvatar: $('#settings-avatar'),
-    profileForm: $('#profile-form'), profileDisplayName: $('#profile-display-name'), profileUsername: $('#profile-username'),
+    profileForm: $('#profile-form'), profileFirstName: $('#profile-first-name'), profileLastName: $('#profile-last-name'), profileUsername: $('#profile-username'), profileBirthDate: $('#profile-birth-date'),
     profileBio: $('#profile-bio'), profileHint: $('#profile-hint'), languageSelect: $('#language-select'),
     themeButton: $('#theme-button'), drawerThemeIcon: $('#drawer-theme-icon'), settingsThemeIcon: $('#settings-theme-icon'),
     logoutButton: $('#logout-button'), currentUsername: $('#current-username'), currentAvatar: $('#current-avatar'),
@@ -32,9 +32,10 @@
     uploadName: $('#upload-name'), uploadFill: $('#upload-fill'), cancelUpload: $('#cancel-upload'),
     stickerPanel: $('#sticker-panel'), stickerGrid: $('#sticker-grid'), closeStickers: $('#close-stickers'),
     // Profile & Privacy
-    profileAvatar: $('#profile-avatar'), avatarInput: $('#avatar-input'), avatarPreview: $('#avatar-preview'), cropCanvas: $('#crop-canvas'),
+    profileAvatar: $('#profile-avatar'), avatarInput: $('#avatar-input'), avatarCameraInput: $('#avatar-camera-input'), cropCanvas: $('#crop-canvas'), avatarSourceModal: $('#avatar-source-modal'), avatarCropModal: $('#avatar-crop-modal'), cropSaveButton: $('#crop-save-button'),
     avatarHistoryBtn: $('#avatar-history-btn'), avatarHistoryModal: $('#avatar-history-modal'), avatarHistoryList: $('#avatar-history-list'),
     avatarHistoryClose: $('#avatar-history-close'),
+    profileName: $('#profile-name'), profileHandle: $('#profile-handle'), profileBioPreview: $('#profile-bio-preview'), profileInfoBio: $('#profile-info-bio'), profileInfoUsername: $('#profile-info-username'), profileInfoBirthday: $('#profile-info-birthday'), profileQrButton: $('#profile-qr-button'), profileQrModal: $('#profile-qr-modal'), profileQrImage: $('#profile-qr-image'), profileShareButton: $('#profile-share-button'),
     usernameAvailable: $('#username-available'), usernameCheckSpinner: $('#username-check-spinner'),
     privacyLastSeen: $('#privacy-last-seen'), privacyGroups: $('#privacy-groups'),
     blockedList: $('#blocked-list'), blockedEmpty: $('#blocked-empty'),
@@ -60,10 +61,10 @@
 
   // Central label resolver. Never shows "مستخدم <id>".
   function getDisplayName(user) {
-    if (!user) return 'Unknown user';
+    if (!user) return 'مستخدم';
     if (user.display_name) return user.display_name;
     if (user.username) return '@' + user.username;
-    return 'Unknown user';
+    return 'مستخدم';
   }
   function time(value) {
     if (!value) return '';
@@ -81,7 +82,7 @@
     return new Intl.DateTimeFormat('ar-IQ', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
   }
   function showToast(text, kind = '', duration = 2800) {
-    els.toast.textContent = text; els.toast.className = `toast ${kind}`; els.toast.hidden = false;
+    els.toast.textContent = text; els.toast.className = `toast ${kind}`; els.toast.hidden = false; els.toast.setAttribute('role', kind === 'error' ? 'alert' : 'status');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => { els.toast.hidden = true; }, duration);
   }
   function authMode(register) {
@@ -93,23 +94,72 @@
     els.authError.hidden = true; els.authError.textContent = '';
   }
   function showAuth(register = false) { els.authScreen.hidden = false; els.messengerScreen.hidden = true; authMode(register); }
+  function paintAvatar(element, user, interactive = false) {
+    if (!element) return;
+    const initial = initials(user?.username || user?.display_name || '?');
+    if (interactive) {
+      let fallback = element.querySelector('.avatar-initial');
+      if (!fallback) { fallback = document.createElement('span'); fallback.className = 'avatar-initial'; element.prepend(fallback); }
+      fallback.textContent = initial;
+    } else {
+      const existing = element.querySelector('img[data-avatar-image]');
+      element.textContent = initial;
+      if (existing) element.append(existing);
+    }
+    let image = element.querySelector('img[data-avatar-image]');
+    if (user?.avatar_url) {
+      if (!image) { image = document.createElement('img'); image.dataset.avatarImage = 'true'; image.alt = ''; image.setAttribute('aria-hidden', 'true'); element.prepend(image); }
+      image.src = window.API.getUserAvatar(user.id) + `&t=${encodeURIComponent(user.updated_at || '')}`;
+    } else image?.remove();
+  }
+  function formatBirthDate(value) {
+    if (!value) return 'غير محدد';
+    const date = new Date(`${value}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) return 'غير محدد';
+    return new Intl.DateTimeFormat('ar-IQ', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date);
+  }
+  function renderLinkedText(element, value, fallback = '—') {
+    if (!element) return;
+    element.replaceChildren();
+    const text = String(value || fallback);
+    const urlPattern = /https?:\/\/[^\s<>{}]+/gi;
+    let cursor = 0; let match;
+    while ((match = urlPattern.exec(text))) {
+      if (match.index > cursor) element.append(document.createTextNode(text.slice(cursor, match.index)));
+      const anchor = document.createElement('a'); anchor.href = match[0].replace(/[),.!؟]+$/, ''); anchor.textContent = anchor.href; anchor.target = '_blank'; anchor.rel = 'noopener noreferrer';
+      element.append(anchor); cursor = match.index + match[0].length;
+    }
+    if (cursor < text.length) element.append(document.createTextNode(text.slice(cursor)));
+  }
   function showMessenger(user) {
     els.authScreen.hidden = true; els.messengerScreen.hidden = false;
     els.drawerName.textContent = getDisplayName(user);
     els.drawerUsername.textContent = `@${user.username}`;
-    els.drawerAvatar.textContent = initials(user.username);
+    paintAvatar(els.drawerAvatar, user);
     els.settingsName.textContent = getDisplayName(user);
     els.settingsUsername.textContent = `@${user.username}`;
-    els.profileDisplayName.value = user.display_name || '';
-    els.profileUsername.value = user.username;
+    paintAvatar(els.settingsAvatar, user);
+    paintAvatar(els.profileAvatar, user, true);
+    els.profileName.textContent = getDisplayName(user);
+    els.profileHandle.textContent = `@${user.username}`;
+    renderLinkedText(els.profileBioPreview, user.bio, 'أضف نبذة قصيرة عنك');
+    renderLinkedText(els.profileInfoBio, user.bio, '—');
+    els.profileInfoUsername.textContent = `@${user.username}`;
+    els.profileInfoBirthday.textContent = formatBirthDate(user.birth_date);
+    els.profileFirstName.value = user.first_name || user.display_name || '';
+    els.profileLastName.value = user.last_name || '';
+    els.profileUsername.value = user.username || '';
     els.profileBio.value = user.bio || '';
+    els.profileBirthDate.value = user.birth_date || '';
+    const counter = $('#bio-counter');
+    if (counter) counter.textContent = String((user.bio || '').length);
   }
   function setAuthError(message) { els.authError.textContent = message; els.authError.hidden = !message; }
 
   function setPanel(name) {
-    for (const [key, panel] of Object.entries({ chats: els.chatsPanel, contacts: els.contactsPanel, calls: els.callsPanel, settings: els.settingsPanel, search: els.searchPanel })) panel.hidden = key !== name;
+    for (const [key, panel] of Object.entries({ chats: els.chatsPanel, contacts: els.contactsPanel, calls: els.callsPanel, settings: els.settingsPanel, profile: els.profilePanel, account: els.accountPanel, search: els.searchPanel })) panel.hidden = key !== name;
     $$('.nav-item').forEach((item) => item.classList.toggle('active', item.dataset.nav === name));
-    els.fab.hidden = name === 'settings' || name === 'calls';
+    els.fab.hidden = ['settings', 'calls', 'profile', 'account'].includes(name);
   }
   function setSearchTab(searching) { setPanel(searching ? 'search' : 'chats'); if (searching) els.peopleQuery.focus(); }
 
@@ -117,7 +167,7 @@
     const button = document.createElement('button'); button.type = 'button';
     button.className = `chat-row${chat.id === activeId ? ' active' : ''}`;
     button.setAttribute('aria-label', `محادثة ${getDisplayName(chat)}`);
-    const avatar = document.createElement('span'); avatar.className = `avatar ${avatarColor(chat.id)}`; avatar.textContent = initials(chat.username);
+    const avatar = document.createElement('span'); avatar.className = `avatar ${avatarColor(chat.id)}`; paintAvatar(avatar, chat);
     const dot = document.createElement('i'); dot.className = `avatar-status${chat.online ? ' online' : ''}`; avatar.append(dot);
     const body = document.createElement('span'); body.className = 'chat-row-body';
     const top = document.createElement('span'); top.className = 'chat-row-top';
@@ -160,7 +210,7 @@
     els.callsEmpty.hidden = calls.length > 0;
     for (const call of calls) {
       const row = document.createElement('button'); row.type = 'button'; row.className = 'chat-row';
-      const avatar = document.createElement('span'); avatar.className = `avatar ${avatarColor(call.peerId)}`; avatar.textContent = initials(call.name);
+      const avatar = document.createElement('span'); avatar.className = `avatar ${avatarColor(call.peerId)}`; paintAvatar(avatar, call);
       const body = document.createElement('span'); body.className = 'chat-row-body';
       const top = document.createElement('span'); top.className = 'chat-row-top';
       const name = document.createElement('strong'); name.className = 'chat-row-name'; name.textContent = call.name;
@@ -180,8 +230,8 @@
   }
   function setChatHeader(user, online) {
     els.chatUsername.textContent = getDisplayName(user);
-    els.chatAvatar.textContent = initials(user.username);
     els.chatAvatar.className = `avatar ${avatarColor(user.id)}`;
+    paintAvatar(els.chatAvatar, user);
     els.chatPresence.textContent = online ? 'متصل الآن' : (user.last_seen ? `آخر ظهور ${time(user.last_seen)}` : 'غير متصل');
     els.chatPresence.classList.toggle('online', online);
   }
@@ -375,7 +425,7 @@
     if (!users.length) { const p = document.createElement('p'); p.className = 'no-results'; p.textContent = els.peopleQuery.value.trim() ? 'لا يوجد حساب بهذا الاسم.' : 'ابحث باسم المستخدم للعثور على أصدقائك.'; els.searchResults.append(p); return; }
     for (const user of users) {
       const row = document.createElement('div'); row.className = 'search-person';
-      const avatar = document.createElement('span'); avatar.className = `avatar ${avatarColor(user.id)}`; avatar.textContent = initials(user.username);
+      const avatar = document.createElement('span'); avatar.className = `avatar ${avatarColor(user.id)}`; paintAvatar(avatar, user);
       const info = document.createElement('span'); info.className = 'search-person-info';
       const name = document.createElement('strong'); name.textContent = getDisplayName(user);
       const handle = document.createElement('small'); handle.textContent = `@${user.username}`;
@@ -463,7 +513,7 @@
   }
 
   window.UI = {
-    els, initials, time, getDisplayName, showToast, authMode, showAuth, showMessenger, setAuthError,
+    els, initials, avatarColor, paintAvatar, time, getDisplayName, showToast, authMode, showAuth, showMessenger, setAuthError,
     renderChats, renderContacts, renderCalls, setPanel, setSearchTab, setChatHeader, updateUnread,
     showWelcome, showChat, openChatLayout, closeChatLayout, scrollToBottom, renderMessages, prependOlder,
     addMessage, updateMessageStatus, setMessageEdited, setMessageReaction, removeMessage, findMessageRow,

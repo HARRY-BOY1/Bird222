@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#091321">
   <meta name="description" content="Bird — مراسلة فورية، خفيفة وسريعة.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -34,7 +34,7 @@
       </div>
       <form id="auth-form" class="stack-form">
         <label for="auth-username">اسم المستخدم</label>
-        <input id="auth-username" name="username" autocomplete="username" minlength="5" maxlength="32" pattern="[A-Za-z0-9_]+" placeholder="مثال: sara_92" required>
+        <input id="auth-username" name="username" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9_]{3,32}" placeholder="مثال: sara_92" required>
         <label for="auth-password">كلمة المرور</label>
         <input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="72" placeholder="8 أحرف على الأقل" required>
         <p id="auth-error" class="inline-error" role="alert" hidden></p>
@@ -114,6 +114,81 @@
           <div id="contacts-empty" class="empty-state" hidden><svg class="empty-illustration" viewBox="0 0 24 24"><use href="assets/icons.svg#i-users"/></svg><p>لا توجد جهات اتصال بعد. ابحث وأضف أصدقاءك.</p></div>
         </section>
 
+
+        <section id="profile-panel" class="panel profile-panel" hidden>
+          <header class="panel-heading profile-heading">
+            <h2>ملفي الشخصي</h2>
+            <div class="profile-heading-actions">
+              <button id="profile-qr-button" class="icon-button" type="button" aria-label="رمز QR"><svg class="ic"><use href="assets/icons.svg#i-qr-code"/></svg></button>
+              <button id="profile-share-button" class="icon-button" type="button" aria-label="مشاركة الملف"><svg class="ic"><use href="assets/icons.svg#i-share-2"/></svg></button><button id="profile-more-button" class="icon-button" type="button" aria-label="المزيد" aria-expanded="false"><svg class="ic"><use href="assets/icons.svg#i-ellipsis-vertical"/></svg></button><div id="profile-more-menu" class="profile-more-menu" hidden><button type="button" data-profile-action="share">مشاركة الملف الشخصي</button><button type="button" data-profile-action="copy">نسخ الرابط</button></div>
+            </div>
+          </header>
+          <div class="profile-content">
+            <section class="profile-hero-card">
+              <div class="profile-avatar-frame">
+                <button id="profile-avatar" class="avatar avatar-xl profile-avatar" type="button" aria-label="تغيير الصورة الشخصية">
+                  <span class="avatar-initial">م</span>
+                  <span class="avatar-photo-action" aria-hidden="true"><svg class="ic"><use href="assets/icons.svg#i-camera"/></svg><svg class="ic photo-plus"><use href="assets/icons.svg#i-plus"/></svg></span>
+                </button>
+              </div>
+              <input id="avatar-input" type="file" accept="image/jpeg,image/png,image/webp" hidden aria-label="اختر صورة من المعرض">
+              <input id="avatar-camera-input" type="file" accept="image/*" capture="environment" hidden aria-label="التقط صورة">
+              <h1 id="profile-name">مستخدم</h1>
+              <p id="profile-handle" class="profile-handle">@user</p>
+              <p id="profile-bio-preview" class="profile-bio-preview">أضف نبذة قصيرة عنك</p>
+              <div class="profile-quick-actions">
+                <button id="profile-add-photo" class="profile-action" type="button"><span class="profile-action-icon"><svg class="ic"><use href="assets/icons.svg#i-camera"/></svg><svg class="ic photo-plus"><use href="assets/icons.svg#i-plus"/></svg></span><span>تعيين صورة</span></button>
+                <button id="edit-account-button" class="profile-action" type="button"><span class="profile-action-icon"><svg class="ic"><use href="assets/icons.svg#i-pencil"/></svg></span><span>تعديل الحساب</span></button>
+                <button id="profile-settings-button" class="profile-action" type="button"><span class="profile-action-icon"><svg class="ic"><use href="assets/icons.svg#i-settings"/></svg></span><span>الإعدادات</span></button>
+              </div>
+            </section>
+            <section class="profile-info-card" aria-label="معلومات الحساب">
+              <h3>معلوماتي</h3>
+              <div class="profile-info-row"><span>النبذة</span><strong id="profile-info-bio">—</strong></div>
+              <div class="profile-info-row"><span>اسم المستخدم</span><strong id="profile-info-username">@user</strong></div>
+              <div class="profile-info-row"><span>تاريخ الميلاد</span><strong id="profile-info-birthday">غير محدد</strong></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="account-panel" class="panel account-panel" hidden>
+          <header class="account-heading">
+            <button id="account-back-button" class="icon-button" type="button" aria-label="رجوع"><svg class="ic"><use href="assets/icons.svg#i-arrow-left"/></svg></button>
+            <h2>الحساب</h2>
+            <span aria-hidden="true"></span>
+          </header>
+          <p class="account-intro">حدّث بياناتك الشخصية ومعلومات ظهورها في التطبيق.</p>
+          <form id="profile-form" class="settings-card settings-form account-form">
+            <section class="account-field-card">
+              <h3>الاسم</h3>
+              <label for="profile-first-name">الاسم الأول</label>
+              <input id="profile-first-name" maxlength="64" autocomplete="given-name" placeholder="اسمك الأول" required>
+              <label for="profile-last-name">الاسم الأخير <span class="helper-text">(اختياري)</span></label>
+              <input id="profile-last-name" maxlength="64" autocomplete="family-name" placeholder="اسم العائلة">
+            </section>
+            <section class="account-field-card username-field">
+              <label for="profile-username">اسم المستخدم</label>
+              <div class="username-input-wrap">
+                <span class="at-prefix">@</span>
+                <input id="profile-username" pattern="[A-Za-z0-9_]{3,32}" minlength="3" maxlength="32" autocomplete="off" placeholder="username" required>
+                <span id="username-check-spinner" class="spinner" hidden></span>
+              </div>
+              <span id="username-available" class="helper-text" aria-live="polite"></span>
+              <p class="helper-text">من أجل الأمان، يمكن تغيير اسم المستخدم مرة كل 24 ساعة.</p>
+            </section>
+            <section class="account-field-card">
+              <label for="profile-bio">النبذة الشخصية <span id="bio-counter">0</span>/140</label>
+              <textarea id="profile-bio" rows="4" maxlength="140" placeholder="اكتب نبذة عنك، ويمكنك إضافة رابط…"></textarea>
+              <p id="profile-hint" class="helper-text">تظهر نبذتك في ملفك الشخصي.</p>
+            </section>
+            <section class="account-field-card">
+              <label for="profile-birth-date">تاريخ الميلاد</label>
+              <input id="profile-birth-date" type="date" autocomplete="bday">
+              <p class="helper-text">لا يمكن اختيار تاريخ في المستقبل.</p>
+            </section>
+            <button class="button button-primary button-wide" type="submit">حفظ التغييرات</button>
+          </form>
+        </section>
         <section id="calls-panel" class="panel" hidden>
           <div class="panel-heading"><h2>المكالمات</h2></div>
           <div id="calls-list" class="chats-list"></div>
@@ -126,31 +201,6 @@
             <div id="settings-avatar" class="avatar avatar-xl avatar-color-1">م</div>
             <div class="settings-profile-head"><strong id="settings-name">مستخدم</strong><span id="settings-username">@user</span><span id="current-avatar" hidden></span><span id="current-username" hidden></span></div>
           </div>
-          <form id="profile-form" class="settings-card settings-form">
-            <h3>الملف الشخصي</h3>
-            <div class="avatar-upload-wrap">
-              <div id="profile-avatar" class="avatar avatar-xl avatar-color-1" tabindex="0" role="button" aria-label="تغيير الصورة الشخصية"></div>
-              <input id="avatar-input" type="file" accept="image/jpeg,image/png,image/webp" hidden aria-label="اختر صورة">
-              <canvas id="crop-canvas" hidden></canvas>
-              <div id="avatar-preview" class="avatar-preview" hidden></div>
-            </div>
-            <label for="profile-display-name">الاسم الظاهر</label>
-            <input id="profile-display-name" maxlength="64" placeholder="اسمك">
-            <div class="username-field">
-              <label for="profile-username">@username</label>
-              <div class="username-input-wrap">
-                <span class="at-prefix">@</span>
-                <input id="profile-username" pattern="[A-Za-z0-9_]{5,32}" placeholder="username" autocomplete="off">
-                <span id="username-check-spinner" class="spinner" hidden></span>
-              </div>
-              <span id="username-available" class="helper-text"></span>
-              <p class="helper-text">يمكن تغيير اسم المستخدم مرة كل 24 ساعة.</p>
-            </div>
-            <label for="profile-bio">نبذة <span id="bio-counter">0</span>/140</label>
-            <textarea id="profile-bio" rows="2" maxlength="140" placeholder="اكتب نبذة عنك..."></textarea>
-            <p id="profile-hint" class="helper-text"></p>
-            <button class="button button-primary" type="submit">حفظ الملف</button>
-          </form>
           <details class="settings-card">
             <summary><svg class="ic"><use href="assets/icons.svg#i-image"/></svg><span>الصورة الشخصية</span></summary>
             <div class="settings-form">
@@ -208,8 +258,8 @@
       <nav class="bottomnav" aria-label="التنقل الرئيسي">
         <button class="nav-item active" id="nav-chats" data-nav="chats"><span class="nav-ic-wrap"><svg class="ic"><use href="assets/icons.svg#i-message-circle"/></svg><span id="nav-unread" class="nav-badge" hidden>0</span></span><span class="nav-label">المحادثات</span></button>
         <button class="nav-item" id="nav-contacts" data-nav="contacts"><span class="nav-ic-wrap"><svg class="ic"><use href="assets/icons.svg#i-users"/></svg></span><span class="nav-label">جهات الاتصال</span></button>
-        <button class="nav-item" id="nav-calls" data-nav="calls"><span class="nav-ic-wrap"><svg class="ic"><use href="assets/icons.svg#i-phone"/></svg></span><span class="nav-label">المكالمات</span></button>
         <button class="nav-item" id="nav-settings" data-nav="settings"><span class="nav-ic-wrap"><svg class="ic"><use href="assets/icons.svg#i-settings"/></svg></span><span class="nav-label">الإعدادات</span></button>
+        <button class="nav-item" id="nav-profile" data-nav="profile" type="button"><span class="nav-ic-wrap"><svg class="ic"><use href="assets/icons.svg#i-user"/></svg></span><span class="nav-label">ملفي</span></button>
       </nav>
     </div>
 
@@ -287,6 +337,29 @@
       <div id="search-results" class="search-results"></div>
     </section>
   </section>
+
+  <div id="avatar-source-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="avatar-source-title">
+    <div class="modal-backdrop"></div><div class="modal-content avatar-source-content">
+      <header class="modal-header"><h2 id="avatar-source-title">تغيير الصورة</h2><button id="avatar-source-close" class="icon-button" type="button" aria-label="إغلاق"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button></header>
+      <div class="avatar-source-options"><button id="choose-gallery-button" class="button button-secondary" type="button"><svg class="ic"><use href="assets/icons.svg#i-image"/></svg>اختيار من المعرض</button><button id="take-photo-button" class="button button-secondary" type="button"><svg class="ic"><use href="assets/icons.svg#i-camera"/></svg>التقاط صورة</button></div>
+    </div>
+  </div>
+  <div id="avatar-crop-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title">
+    <div class="modal-backdrop"></div><div class="modal-content avatar-crop-content">
+      <header class="modal-header"><h2 id="avatar-crop-title">ضبط الصورة الشخصية</h2><button id="avatar-crop-close" class="icon-button" type="button" aria-label="إغلاق"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button></header>
+      <p class="helper-text crop-hint">اسحب الصورة لضبط موضعها، واستخدم إصبعين أو عجلة الفأرة للتكبير.</p>
+      <canvas id="crop-canvas" width="512" height="512" aria-label="معاينة قص الصورة"></canvas>
+      <div class="crop-actions"><button id="crop-cancel-button" class="button button-secondary" type="button">إلغاء</button><button id="crop-save-button" class="button button-primary" type="button">استخدام الصورة</button></div>
+    </div>
+  </div>
+  <div id="profile-qr-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="profile-qr-title">
+    <div class="modal-backdrop"></div><div class="modal-content profile-qr-content">
+      <header class="modal-header"><h2 id="profile-qr-title">رمز حسابي</h2><button id="profile-qr-close" class="icon-button" type="button" aria-label="إغلاق"><svg class="ic"><use href="assets/icons.svg#i-x"/></svg></button></header>
+      <p id="profile-qr-caption" class="helper-text">امسح الرمز للوصول إلى تطبيق Bird.</p>
+      <img id="profile-qr-image" class="profile-qr-image" alt="رمز QR لملفي الشخصي">
+      <div class="crop-actions"><button id="profile-qr-share" class="button button-secondary" type="button">مشاركة الرابط</button><button id="profile-qr-copy" class="button button-primary" type="button">نسخ الرابط</button></div>
+    </div>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   <div id="message-menu" class="message-menu" hidden></div>
 

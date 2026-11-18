@@ -89,59 +89,57 @@
     cropData.x = (img.width - size) / 2;
     cropData.y = (img.height - size) / 2;
     cropCtx.drawImage(img, cropData.x, cropData.y, size, size, 0, 0, 512, 512);
-    els.avatarPreview.hidden = false;
-    els.avatarPreview.querySelector('img')?.remove();
-    const previewImg = document.createElement('img');
-    previewImg.src = cropCanvas.toDataURL('image/jpeg', 0.9);
-    els.avatarPreview.append(previewImg);
+    els.avatarCropModal.hidden = false;
     els.profileAvatar.classList.add('changed');
     setupCropEvents();
   }
 
   function setupCropEvents() {
     let isDragging = false, startX = 0, startY = 0;
-    cropCanvas.onmousedown = (e) => { isDragging = true; startX = e.clientX; startY = e.clientY; };
-    window.onmousemove = (e) => {
+    const move = (e) => {
       if (!isDragging) return;
-      const dx = (e.clientX - startX) / cropData.scale;
-      const dy = (e.clientY - startY) / cropData.scale;
+      const rect = cropCanvas.getBoundingClientRect();
+      const factor = 512 / Math.max(1, rect.width) / cropData.scale;
+      const dx = (e.clientX - startX) * factor;
+      const dy = (e.clientY - startY) * factor;
       cropData.x = Math.max(0, Math.min(cropImage.width - cropData.size, cropData.x - dx));
       cropData.y = Math.max(0, Math.min(cropImage.height - cropData.size, cropData.y - dy));
-      redrawCrop();
-      startX = e.clientX; startY = e.clientY;
+      redrawCrop(); startX = e.clientX; startY = e.clientY;
     };
-    window.onmouseup = () => { isDragging = false; };
+    cropCanvas.onpointerdown = (e) => { isDragging = true; startX = e.clientX; startY = e.clientY; cropCanvas.setPointerCapture?.(e.pointerId); };
+    cropCanvas.onpointermove = move;
+    cropCanvas.onpointerup = cropCanvas.onpointercancel = () => { isDragging = false; };
     cropCanvas.onwheel = (e) => {
       e.preventDefault();
       const zoom = e.deltaY > 0 ? 0.95 : 1.05;
       const newSize = Math.max(100, Math.min(cropData.size * zoom, Math.min(cropImage.width, cropImage.height)));
-      const cx = cropData.x + cropData.size / 2;
-      const cy = cropData.y + cropData.size / 2;
+      const cx = cropData.x + cropData.size / 2; const cy = cropData.y + cropData.size / 2;
       cropData.size = newSize;
       cropData.x = Math.max(0, Math.min(cropImage.width - newSize, cx - newSize / 2));
       cropData.y = Math.max(0, Math.min(cropImage.height - newSize, cy - newSize / 2));
-      redrawCrop();
+      cropData.scale = 512 / newSize; redrawCrop();
     };
   }
 
   function redrawCrop() {
     cropCtx.clearRect(0, 0, 512, 512);
     cropCtx.drawImage(cropImage, cropData.x, cropData.y, cropData.size, cropData.size, 0, 0, 512, 512);
-    const previewImg = els.avatarPreview.querySelector('img');
-    if (previewImg) previewImg.src = cropCanvas.toDataURL('image/jpeg', 0.9);
+    // The crop canvas is the live preview in the crop dialog.
   }
 
   async function uploadCroppedAvatar() {
-    if (!cropCanvas) return;
+    if (!cropCanvas || !cropImage.src) return;
     const blob = await new Promise(resolve => cropCanvas.toBlob(resolve, 'image/jpeg', 0.9));
+    if (!blob) { window.UI.showToast('تعذر تجهيز الصورة. جرّب صورة أخرى.', 'error'); return; }
     const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+    els.cropSaveButton.disabled = true; els.cropSaveButton.textContent = 'جارٍ الرفع…';
     els.profileAvatar.classList.add('uploading');
     try {
       const result = await window.API.uploadAvatar(file, (p) => {
         // progress if needed
       });
       if (result?.user) {
-        state.user = result.user;
+        state.user = { ...state.user, ...result.user };
         cacheUser(result.user);
         window.UI.showMessenger(state.user);
         window.UI.showToast('تم تحديث الصورة الشخصية', 'success');
@@ -155,11 +153,11 @@
   }
 
   function closeCropModal() {
-    els.avatarPreview.hidden = true;
-    els.avatarPreview.innerHTML = '';
-    els.avatarInput.value = '';
-    cropCanvas.width = cropCanvas.height = 0;
-    window.onmousemove = window.onmouseup = cropCanvas.onmousedown = cropCanvas.onwheel = null;
+    els.avatarCropModal.hidden = true;
+    els.avatarInput.value = ''; els.avatarCameraInput.value = '';
+    cropCanvas.width = cropCanvas.height = 0; cropImage.src = '';
+    cropCanvas.onpointerdown = cropCanvas.onpointermove = cropCanvas.onpointerup = cropCanvas.onpointercancel = cropCanvas.onwheel = null;
+    els.cropSaveButton.disabled = false; els.cropSaveButton.textContent = 'استخدام الصورة';
   }
 
   // Avatar history modal
@@ -216,7 +214,7 @@
   async function setCurrentAvatar(id) {
     try {
       const { user } = await window.API.setCurrentAvatar(id);
-      state.user = user;
+      state.user = { ...state.user, ...user };
       cacheUser(user);
       window.UI.showMessenger(state.user);
       window.UI.showToast('تم تعيين الصورة الحالية', 'success');
@@ -227,7 +225,7 @@
     if (!confirm('هل تريد حذف هذه الصورة من السجل؟')) return;
     try {
       const { user } = await window.API.deleteAvatar(id);
-      state.user = user;
+      state.user = { ...state.user, ...user };
       cacheUser(user);
       window.UI.showMessenger(state.user);
       window.UI.showToast('تم حذف الصورة', 'success');
@@ -238,7 +236,7 @@
     if (!confirm('هل تريد إزالة الصورة الشخصية الحالية؟')) return;
     try {
       const { user } = await window.API.removeAvatar();
-      state.user = user;
+      state.user = { ...state.user, ...user };
       cacheUser(user);
       window.UI.showMessenger(state.user);
       window.UI.showToast('تم إزالة الصورة الشخصية', 'success');
@@ -278,7 +276,7 @@
   // Bio character counter
   function onBioInput() {
     const len = els.profileBio.value.length;
-    els.querySelector('#bio-counter').textContent = len;
+    const counter = $('#bio-counter'); if (counter) counter.textContent = String(len);
     if (len > 140) els.profileBio.value = els.profileBio.value.slice(0, 140);
   }
 
@@ -323,7 +321,7 @@
       item.className = 'blocked-item';
       const avatar = document.createElement('span');
       avatar.className = `avatar ${window.UI.avatarColor(u.id)}`;
-      avatar.textContent = window.UI.initials(u.username);
+      window.UI.paintAvatar(avatar, u);
       const info = document.createElement('div');
       info.className = 'info';
       const name = document.createElement('div');
@@ -444,14 +442,8 @@
     } catch (error) { showError(error); }
   }
   function renderUserProfile(user, canSeeLastSeen, isBlocked, blockedByThem, commonGroups) {
-    els.profileViewAvatar.textContent = window.UI.initials(user.username);
     els.profileViewAvatar.className = `avatar avatar-xl ${window.UI.avatarColor(user.id)}`;
-    if (user.avatar_url) {
-      const img = document.createElement('img');
-      img.src = window.API.fileUrl(user.avatar_url.split('/').pop());
-      els.profileViewAvatar.innerHTML = '';
-      els.profileViewAvatar.append(img);
-    }
+    window.UI.paintAvatar(els.profileViewAvatar, user);
     els.profileViewName.textContent = window.UI.getDisplayName(user);
     els.profileViewUsername.textContent = `@${user.username}`;
     els.profileViewBio.textContent = user.bio || 'لا توجد نبذة';
@@ -529,9 +521,10 @@
 
   // Socket event: profile:updated
   function onProfileUpdated({ userId, user }) {
-    cacheUser(user);
+    const mergedUser = { ...(state.users.get(Number(userId)) || {}), ...(user || {}) };
+    cacheUser(mergedUser);
     if (userId === state.user.id) {
-      state.user = user;
+      state.user = { ...state.user, ...mergedUser };
       window.UI.showMessenger(state.user);
     }
     if (state.activeId === userId) {
@@ -606,6 +599,8 @@
     window.UI.closeChatLayout();
     window.API.setToken(localStorage.getItem(TOKEN_KEY));
     loadPersistedState();
+    try { user = await window.API.getMe(); } catch (error) { if (error?.status === 401) { clearSession(); return; } }
+    state.user = user;
     window.UI.showMessenger(user);
     window.UI.setPanel('chats');
     try { state.calls = JSON.parse(localStorage.getItem('messenger.calls') || '[]'); } catch { state.calls = []; }
@@ -614,6 +609,10 @@
     connectSocket();
     try { await loadContacts(); }
     catch (error) { showError(error); }
+    const sharedUsername = new URLSearchParams(location.search).get('u');
+    if (sharedUsername && sharedUsername.toLowerCase() !== state.user.username.toLowerCase()) {
+      try { const matches = await window.API.searchUsers(sharedUsername); const target = matches.find((item) => item.username.toLowerCase() === sharedUsername.toLowerCase()); if (target) openUserProfile(target.id); } catch { /* Profile links remain usable when user search is unavailable. */ }
+    }
   }
   function connectSocket() {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -979,11 +978,16 @@
   async function saveProfile(event) {
     event.preventDefault();
     const submitBtn = els.profileForm.querySelector('button[type="submit"]');
-    const data = { bio: els.profileBio.value.trim() || null };
-    const displayName = els.profileDisplayName.value.trim();
-    if (displayName) data.display_name = displayName;
+    const firstName = els.profileFirstName.value.trim();
+    const lastName = els.profileLastName.value.trim();
     const newUsername = els.profileUsername.value.trim().toLowerCase();
-    if (newUsername && newUsername !== state.user?.username?.toLowerCase()) data.username = newUsername;
+    if (!firstName) { window.UI.showToast('يرجى كتابة الاسم الأول.', 'error'); els.profileFirstName.focus(); return; }
+    const currentUsername = state.user?.username?.toLowerCase() || '';
+    if (newUsername !== currentUsername && !/^[a-zA-Z0-9_]{5,32}$/.test(newUsername)) { window.UI.showToast('اسم المستخدم الجديد يجب أن يتكون من 5 إلى 32 حرفاً إنجليزياً أو رقماً أو _.', 'error'); els.profileUsername.focus(); return; }
+    const birthDate = els.profileBirthDate.value || null;
+    if (birthDate && birthDate > new Date().toISOString().slice(0, 10)) { window.UI.showToast('تاريخ الميلاد لا يمكن أن يكون في المستقبل.', 'error'); return; }
+    const data = { first_name: firstName, last_name: lastName || null, bio: els.profileBio.value.trim() || null, birth_date: birthDate };
+    if (newUsername !== currentUsername) data.username = newUsername;
     submitBtn.disabled = true; submitBtn.textContent = 'جاري الحفظ...';
     try {
       const user = await window.API.updateProfile(data);
@@ -992,7 +996,7 @@
       window.UI.showMessenger(user);
       window.UI.showToast('تم حفظ الملف الشخصي', 'success');
     } catch (error) { showError(error); }
-    finally { submitBtn.disabled = false; submitBtn.textContent = 'حفظ الملف'; }
+    finally { submitBtn.disabled = false; submitBtn.textContent = 'حفظ التغييرات'; }
   }
 
   async function openChat(contact) {
@@ -1221,6 +1225,26 @@
   }
   function showSearch() { window.UI.setSearchTab(true); els.peopleQuery.value = ''; els.searchResults.replaceChildren(); }
   function showChats() { window.UI.setSearchTab(false); }
+  function profileUrl() { return `${location.origin}${location.pathname}?u=${encodeURIComponent(state.user?.username || '')}`; }
+  function openAvatarSource() { els.avatarSourceModal.hidden = false; }
+  function closeAvatarSource() { els.avatarSourceModal.hidden = true; }
+  async function shareProfile() {
+    const url = profileUrl();
+    try {
+      if (navigator.share) await navigator.share({ title: `ملف ${window.UI.getDisplayName(state.user)}`, text: `تواصل معي على Bird: @${state.user.username}`, url });
+      else { await navigator.clipboard.writeText(url); window.UI.showToast('تم نسخ رابط الملف الشخصي.', 'success'); }
+    } catch (error) { if (error?.name !== 'AbortError') window.UI.showToast('تعذرت مشاركة الرابط. انسخه من زر رمز QR.', 'error'); }
+  }
+  function showProfileQr() {
+    const url = profileUrl();
+    const endpoint = 'https://api.qrserver.com/v1/create-qr-code/';
+    els.profileQrImage.src = `${endpoint}?size=256x256&format=png&data=${encodeURIComponent(url)}`;
+    els.profileQrImage.onerror = () => { els.profileQrImage.alt = 'تعذر تحميل رمز QR، يمكنك مشاركة الرابط بدلاً من ذلك.'; };
+    els.profileQrModal.hidden = false;
+  }
+  function closeProfileQr() { els.profileQrModal.hidden = true; }
+  function openAccount() { showPanel('account'); els.profileFirstName.focus({ preventScroll: true }); }
+  function openSettings() { showPanel('settings'); loadPrivacySettings(); loadBlockedUsers(); loadSessions(); }
   function showPanel(name) {
     window.UI.setPanel(name);
     if (name === 'contacts') renderContactsView();
@@ -1238,11 +1262,16 @@
   function restoreTheme() {
     let theme = null;
     try { theme = localStorage.getItem('messenger.theme'); } catch { /* Keep system preference. */ }
-    window.UI.setTheme(theme ? theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches);
+    window.UI.setTheme(theme ? theme === 'dark' : true);
   }
   function setupEvents() {
-    els.loginTab.addEventListener('click', () => { state.authMode = 'login'; window.UI.authMode(false); });
-    els.registerTab.addEventListener('click', () => { state.authMode = 'register'; window.UI.authMode(true); });
+    const setAuthMode = (mode) => {
+      state.authMode = mode; window.UI.authMode(mode === 'register');
+      els.authUsername.minLength = mode === 'register' ? 5 : 3;
+      els.authUsername.pattern = mode === 'register' ? '[A-Za-z0-9_]{5,32}' : '[A-Za-z0-9_]{3,32}';
+    };
+    els.loginTab.addEventListener('click', () => setAuthMode('login'));
+    els.registerTab.addEventListener('click', () => setAuthMode('register'));
     els.authForm.addEventListener('submit', onAuthSubmit);
     els.logoutButton.addEventListener('click', logout);
     els.themeButton.addEventListener('click', toggleTheme);
@@ -1254,22 +1283,45 @@
       if (action === 'theme') return toggleTheme();
       if (action === 'contacts') return showPanel('contacts');
       if (action === 'calls') return showPanel('calls');
-      if (action === 'settings') { showPanel('settings'); loadPrivacySettings(); loadBlockedUsers(); loadSessions(); return; }
+      if (action === 'settings') { openSettings(); return; }
       if (action === 'invite') { const link = `${location.origin}/u/${state.user?.username || ''}`; navigator.clipboard?.writeText(link).catch(() => {}); window.UI.showToast('تم نسخ رابط الدعوة.', 'success'); return; }
       if (action === 'saved') { openSavedMessages(); return; }
       window.UI.showToast('ستتوفر هذه الميزة قريباً.');
     }));
 
-    // Profile form
+    // Profile and account pages
+    $('#nav-profile').addEventListener('click', () => showPanel('profile'));
+    $('#edit-account-button').addEventListener('click', openAccount);
+    $('#account-back-button').addEventListener('click', () => showPanel('profile'));
+    $('#profile-settings-button').addEventListener('click', openSettings);
     els.profileForm.addEventListener('submit', saveProfile);
-    els.profileDisplayName.addEventListener('input', () => { /* validation if needed */ });
+    els.profileFirstName.addEventListener('input', () => { els.profileFirstName.setCustomValidity(''); });
     els.profileUsername.addEventListener('input', onUsernameInput);
     els.profileBio.addEventListener('input', onBioInput);
 
-    // Avatar
-    els.profileAvatar.addEventListener('click', () => els.avatarInput.click());
-    els.profileAvatar.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); els.avatarInput.click(); } });
+    // Avatar: explicit gallery/camera choices and an in-image add button.
+    els.profileAvatar.addEventListener('click', openAvatarSource);
+    $('#profile-add-photo').addEventListener('click', openAvatarSource);
+    $('#choose-gallery-button').addEventListener('click', () => { closeAvatarSource(); els.avatarInput.click(); });
+    $('#take-photo-button').addEventListener('click', () => { closeAvatarSource(); els.avatarCameraInput.click(); });
+    $('#avatar-source-close').addEventListener('click', closeAvatarSource);
+    els.avatarSourceModal.querySelector('.modal-backdrop').addEventListener('click', closeAvatarSource);
     els.avatarInput.addEventListener('change', handleAvatarSelect);
+    els.avatarCameraInput.addEventListener('change', handleAvatarSelect);
+    els.cropSaveButton.addEventListener('click', uploadCroppedAvatar);
+    $('#crop-cancel-button').addEventListener('click', closeCropModal);
+    $('#avatar-crop-close').addEventListener('click', closeCropModal);
+    els.avatarCropModal.querySelector('.modal-backdrop').addEventListener('click', closeCropModal);
+    els.profileQrButton.addEventListener('click', showProfileQr);
+    const moreButton = $('#profile-more-button'); const moreMenu = $('#profile-more-menu');
+    moreButton.addEventListener('click', (event) => { event.stopPropagation(); moreMenu.hidden = !moreMenu.hidden; moreButton.setAttribute('aria-expanded', String(!moreMenu.hidden)); });
+    moreMenu.addEventListener('click', async (event) => { const action = event.target.closest('[data-profile-action]')?.dataset.profileAction; moreMenu.hidden = true; moreButton.setAttribute('aria-expanded', 'false'); if (action === 'share') await shareProfile(); if (action === 'copy') { try { await navigator.clipboard.writeText(profileUrl()); window.UI.showToast('تم نسخ رابط الملف الشخصي.', 'success'); } catch { window.UI.showToast(profileUrl(), 'success', 5000); } } });
+    document.addEventListener('click', (event) => { if (!moreMenu.contains(event.target) && event.target !== moreButton) { moreMenu.hidden = true; moreButton.setAttribute('aria-expanded', 'false'); } });
+    els.profileShareButton.addEventListener('click', shareProfile);
+    $('#profile-qr-close').addEventListener('click', closeProfileQr);
+    els.profileQrModal.querySelector('.modal-backdrop').addEventListener('click', closeProfileQr);
+    $('#profile-qr-share').addEventListener('click', shareProfile);
+    $('#profile-qr-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(profileUrl()); window.UI.showToast('تم نسخ رابط الملف الشخصي.', 'success'); } catch { window.UI.showToast(profileUrl(), 'success', 5000); } });
     els.avatarHistoryBtn?.addEventListener('click', openAvatarHistory);
     els.avatarHistoryClose?.addEventListener('click', () => { els.avatarHistoryModal.hidden = true; });
     els.avatarHistoryModal?.querySelector('.modal-backdrop')?.addEventListener('click', () => { els.avatarHistoryModal.hidden = true; });
@@ -1342,7 +1394,8 @@
       menu.style.top = `${Math.min(event.clientY, innerHeight - 240)}px`;
     });
     document.addEventListener('click', (event) => { if (!menu.hidden && !menu.contains(event.target)) closeMenu(); });
-    $$('[data-nav]').forEach((item) => item.addEventListener('click', () => showPanel(item.dataset.nav)));
+    $$('[data-nav]').forEach((item) => item.addEventListener('click', () => item.dataset.nav === 'settings' ? openSettings() : showPanel(item.dataset.nav)));
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { closeAvatarSource(); closeCropModal(); closeProfileQr(); } });
     $('#compose-fab').addEventListener('click', showSearch);
     $('#top-search-button').addEventListener('click', showSearch);
     $('#close-search-panel').addEventListener('click', showChats);
