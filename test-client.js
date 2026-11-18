@@ -7,6 +7,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'js/app.js'), 'utf8');
 const ui = fs.readFileSync(path.join(root, 'js/ui.js'), 'utf8');
 const sw = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'css/styles.css'), 'utf8');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 
 assert.match(html, /<html lang="ar" dir="rtl"(?: data-theme="dark")?>/);
@@ -28,6 +29,8 @@ assert.match(app, /maxUploadBytes/);
 assert.match(app, /kind: 'sticker'/);
 assert.match(sw, /event\.respondWith\(fetch\(request\)/);
 assert.match(ui, /function getDisplayName/);
+assert.match(css, /\.messenger-screen:has\(#profile-panel:not\(\[hidden\]\)\)/);
+assert.match(css, /\.messenger-screen:has\(#account-panel:not\(\[hidden\]\)\)/);
 assert.doesNotMatch(app, /مستخدم \$\{/);
 assert.match(app, /users: new Map/);
 assert.match(app, /function cacheUser/);
