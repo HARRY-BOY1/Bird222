@@ -20,6 +20,8 @@ assert.doesNotMatch(ui, /innerHTML/);
 assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/);
 assert.match(sw, /url\.pathname\.startsWith\('\/socket.io\/'\)/);
 assert.match(sw, /bird-shell-v11/);
+assert.match(sw, /addEventListener\('push'/);
+assert.match(html, /id="notifications-button"/);
 assert.match(sw, /js\/stickers\.js/);
 assert.match(html, /js\/stickers\.js/);
 assert.match(html, /id="file-input"/);

@@ -10,7 +10,7 @@
     online: new Set(), hasMore: false, oldestId: null, loadingOlder: false,
     authMode: 'login', typingTimer: null, toastTimer: null, searchTimer: null,
     callTimer: null, callPeer: null, callPeerId: null, callDirection: null, callCallId: null,
-    searchSequence: 0, composing: false, calls: [],
+    searchSequence: 0, composing: false, calls: [], notifications: false,
     prefs: {}, drafts: {}, folder: 'all', replyTo: null, editId: null, savedId: null,
   };
 
@@ -51,6 +51,43 @@
   function showError(error) {
     if (error?.status === 401) { clearSession(); window.UI.showToast('انتهت صلاحية الجلسة. سجّل الدخول مرة ثانية.', 'error'); return; }
     window.UI.showToast(error?.message || 'صار خطأ غير متوقع.', 'error');
+  }
+
+  function updateNotificationUI() {
+    const button = $('#notifications-button'); const label = $('#notification-state');
+    if (!button || !label) return;
+    const permission = 'Notification' in window ? Notification.permission : 'unsupported';
+    const enabled = permission === 'granted' && state.notifications;
+    label.textContent = permission === 'denied' ? 'محظورة من المتصفح' : (enabled ? 'مفعّلة على هذا الجهاز' : 'غير مفعّلة');
+    button.textContent = permission === 'denied' ? 'افتح إعدادات المتصفح' : (enabled ? 'إيقاف' : 'تفعيل');
+    button.disabled = permission === 'denied'; button.classList.toggle('is-enabled', enabled);
+  }
+  function base64ToBytes(value) {
+    const padding = '='.repeat((4 - (value.length % 4)) % 4);
+    const raw = atob((value + padding).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from([...raw].map((char) => char.charCodeAt(0)));
+  }
+  async function toggleNotifications() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) { window.UI.showToast('الإشعارات غير مدعومة في هذا المتصفح.', 'error'); return; }
+    if (Notification.permission === 'denied') { window.UI.showToast('افتح إعدادات المتصفح للسماح بإشعارات Bird.', 'error'); return; }
+    if (state.notifications) {
+      try { const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription(); if (sub) { await window.API.removePushSubscription(sub.endpoint).catch(() => {}); await sub.unsubscribe(); } } catch {}
+      state.notifications = false; localStorage.setItem('messenger.notifications', 'off'); updateNotificationUI(); window.UI.showToast('تم إيقاف الإشعارات.'); return;
+    }
+    if (await Notification.requestPermission() !== 'granted') { updateNotificationUI(); return; }
+    try {
+      const registration = await navigator.serviceWorker.ready; const publicKey = await window.API.pushPublicKey();
+      if (publicKey) { const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64ToBytes(publicKey) }); await window.API.savePushSubscription(subscription); }
+      state.notifications = true; localStorage.setItem('messenger.notifications', 'on'); updateNotificationUI(); window.UI.showToast('تم تفعيل الإشعارات على هذا الجهاز.', 'success');
+    } catch (error) { state.notifications = false; updateNotificationUI(); window.UI.showToast(error?.message || 'تعذّر تفعيل الإشعارات.', 'error'); }
+  }
+  function notifyIncomingMessage(message, contact) {
+    if (!state.notifications || !('Notification' in window) || Notification.permission !== 'granted') return;
+    if (state.activeId === Number(message.sender_id) && !els.activeChat.hidden) return;
+    if (state.prefs[Number(message.sender_id)]?.muted) return;
+    const title = window.UI.getDisplayName(contact || message.sender || { username: 'Bird' });
+    const body = message.kind === 'text' ? (message.text || 'رسالة جديدة') : 'رسالة جديدة';
+    navigator.serviceWorker.ready.then((registration) => registration.showNotification(title, { body, tag: `bird-chat-${message.sender_id}`, icon: './icons/icon-192.png', data: { url: './', peerId: message.sender_id }, dir: 'rtl' })).catch(() => {});
   }
 
   // ---- Profile & Avatar ----
@@ -659,6 +696,7 @@
     if (!contact) {
       contact = sender || { id: senderId, username: String(senderId), created_at: message.created_at, last_seen: null, lastMessage: message, unread: 1, online: state.online.has(senderId) };
       state.contacts.set(senderId, contact);
+      notifyIncomingMessage(message, contact);
       persistState(); renderChats();
       if (!sender) {
         // Fallback: look up the sender by id to get a real name.
@@ -671,6 +709,7 @@
     }
     // Refresh contact name if a newer sender object arrived.
     if (sender) { Object.assign(contact, sender); persistState(); renderChats(); }
+    notifyIncomingMessage(message, contact);
     const isOpen = state.activeId === senderId && !els.activeChat.hidden;
     if (isOpen) {
       const list = state.messages.get(senderId) || [];
@@ -1247,6 +1286,7 @@
   function openSettings() { showPanel('settings'); loadPrivacySettings(); loadBlockedUsers(); loadSessions(); }
   function showPanel(name) {
     window.UI.setPanel(name);
+    if (name === 'settings') updateNotificationUI();
     if (name === 'contacts') renderContactsView();
     if (name === 'calls') renderCallsView();
   }
@@ -1264,6 +1304,10 @@
     try { theme = localStorage.getItem('messenger.theme'); } catch { /* Keep system preference. */ }
     window.UI.setTheme(theme ? theme === 'dark' : true);
   }
+  function restoreNotificationPreference() {
+    try { state.notifications = localStorage.getItem('messenger.notifications') === 'on' && ('Notification' in window) && Notification.permission === 'granted'; } catch { state.notifications = false; }
+    updateNotificationUI();
+  }
   function setupEvents() {
     const setAuthMode = (mode) => {
       state.authMode = mode; window.UI.authMode(mode === 'register');
@@ -1275,6 +1319,7 @@
     els.authForm.addEventListener('submit', onAuthSubmit);
     els.logoutButton.addEventListener('click', logout);
     els.themeButton.addEventListener('click', toggleTheme);
+    $('#notifications-button').addEventListener('click', toggleNotifications);
     $('#drawer-button').addEventListener('click', window.UI.openDrawer);
     $('#drawer-backdrop').addEventListener('click', window.UI.closeDrawer);
     $$('[data-drawer]').forEach((item) => item.addEventListener('click', () => {
@@ -1454,7 +1499,7 @@
     await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = () => reject(new Error('تعذّر تحميل عميل Socket.IO من الخادم.')); document.head.append(script); });
   }
   async function start() {
-    restoreTheme(); setupEvents(); state.authMode = 'login'; window.UI.authMode(false);
+    restoreTheme(); setupEvents(); restoreNotificationPreference(); state.authMode = 'login'; window.UI.authMode(false);
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(() => {});
     try { await loadSocketScript(); }
     catch (error) { console.warn(error); }

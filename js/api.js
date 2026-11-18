@@ -74,6 +74,9 @@
     async editMessage(id, text) { return (await request(`/api/messages/${id}/edit`, { method: 'POST', body: { text } })).message; },
     async deleteMessage(id, mode = 'me') { return request(`/api/messages/${id}/delete`, { method: 'POST', body: { mode } }); },
     async reactToMessage(id, reaction) { return request(`/api/messages/${id}/react`, { method: 'POST', body: { reaction } }); },
+    async pushPublicKey() { return (await request('/api/push/public-key')).publicKey; },
+    async savePushSubscription(subscription) { return request('/api/push/subscribe', { method: 'POST', body: subscription.toJSON ? subscription.toJSON() : subscription }); },
+    async removePushSubscription(endpoint) { return request('/api/push/subscribe', { method: 'DELETE', body: { endpoint } }); },
     async messages(userId, before) {
       const cursor = before ? `?before=${encodeURIComponent(before)}` : '';
       return request(`/api/messages/${encodeURIComponent(userId)}${cursor}`);

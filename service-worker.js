@@ -5,6 +5,7 @@ const APP_SHELL = [
   './config.js',
   './manifest.json',
   './css/styles.css',
+  './css/aurora-overrides.css',
   './js/stickers.js',
   './js/ui.js',
   './js/api.js',
@@ -36,4 +37,17 @@ self.addEventListener('fetch', (event) => {
     }
     return response;
   }).catch(async () => (await caches.match(request)) || (request.mode === 'navigate' ? caches.match('./index.html') : Response.error())));
+});
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data?.json() || {}; } catch { data = { body: event.data?.text() || 'رسالة جديدة' }; }
+  event.waitUntil(self.registration.showNotification(data.title || 'Bird', { body: data.body || 'لديك رسالة جديدة', tag: data.tag || 'bird-message', icon: './icons/icon-192.png', badge: './icons/icon-192.png', dir: 'rtl', data: data.data || { url: './' } }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  const target = data.peerId ? `./?chat=${encodeURIComponent(data.peerId)}` : (data.url || './');
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => { const client = clients.find((item) => 'focus' in item); return client ? client.focus() : self.clients.openWindow(target); }));
 });
