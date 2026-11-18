@@ -32,11 +32,23 @@ export default function SessionProvider({ children }: { children: React.ReactNod
     if (!storedToken) { setLoading(false); return }
     setToken(storedToken)
     if (storedUser) {
-      try { setUserState(JSON.parse(storedUser) as BirdUser) } catch { localStorage.removeItem(USER_KEY) }
+      try {
+        setUserState(JSON.parse(storedUser) as BirdUser)
+        setLoading(false)
+      } catch {
+        localStorage.removeItem(USER_KEY)
+      }
     }
     api<{ user: BirdUser }>('/api/me', { token: storedToken })
-      .then((data) => { setUserState(data.user); localStorage.setItem(USER_KEY, JSON.stringify(data.user)) })
-      .catch(() => { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); setToken(null); setUserState(null) })
+      .then((data) => {
+        if (!data.user) throw new Error('Invalid session response')
+        setUserState(data.user)
+        localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+      })
+      .catch(() => {
+        // Keep the locally stored session during transient API or network failures.
+        // Requests made by the chat surface will show the actionable server error.
+      })
       .finally(() => setLoading(false))
   }, [])
 
