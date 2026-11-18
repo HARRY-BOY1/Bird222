@@ -66,7 +66,6 @@
     async addContact(contactId) { return (await request('/api/contacts', { method: 'POST', body: { contactId } })).contact; },
     async searchUsers(query) { return (await request(`/api/users/search?q=${encodeURIComponent(query)}`)).users; },
     async getUser(id) { return (await request(`/api/users/${encodeURIComponent(id)}`)).user; },
-    async updateProfile(data) { return (await request('/api/profile', { method: 'PATCH', body: data })).user; },
     async getPrefs() { return (await request('/api/prefs')).prefs; },
     async setPref(peerId, changes) { return request('/api/prefs', { method: 'POST', body: { peerId, ...changes } }); },
     async getDrafts() { return (await request('/api/drafts')).drafts; },
@@ -89,8 +88,7 @@
     async deleteAvatar(id) { return (await request(`/api/me/avatars/${encodeURIComponent(id)}`, { method: 'DELETE' })).user; },
     async setCurrentAvatar(id) { return (await request(`/api/me/avatars/${encodeURIComponent(id)}/set-current`, { method: 'POST' })).user; },
     async removeAvatar() { return (await request('/api/me/avatar', { method: 'DELETE' })).user; },
-    async getUser(id) { return (await request(`/api/users/${encodeURIComponent(id)}`)).user; },
-    async getUserAvatar(id) { return `${baseUrl}/api/users/${encodeURIComponent(id)}/avatar?token=${encodeURIComponent(token || '')}`; },
+    getUserAvatar(id) { return `${baseUrl}/api/users/${encodeURIComponent(id)}/avatar?token=${encodeURIComponent(token || '')}`; },
     // Privacy & Blocks
     async getBlocks() { return (await request('/api/blocks')).blocked; },
     async blockUser(userId) { return await request('/api/blocks', { method: 'POST', body: { userId } }); },

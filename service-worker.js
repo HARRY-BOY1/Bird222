@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bird-shell-v9';
+const CACHE_NAME = 'bird-shell-v10';
 const APP_SHELL = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const APP_SHELL = [
   './js/api.js',
   './js/socket.js',
   './js/app.js',
+  './js/health.js',
   './icons/icon-192.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',

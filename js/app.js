@@ -282,30 +282,10 @@
     if (len > 140) els.profileBio.value = els.profileBio.value.slice(0, 140);
   }
 
-  // Profile form submit
-  async function saveProfile(event) {
-    event.preventDefault();
-    const submitBtn = els.profileForm.querySelector('button[type="submit"]');
-    submitBtn.disabled = true; submitBtn.textContent = 'جاري الحفظ...';
-    try {
-      const data = { bio: els.profileBio.value.trim() || null };
-      const displayName = els.profileDisplayName.value.trim();
-      if (displayName) data.display_name = displayName;
-      const newUsername = els.profileUsername.value.trim().toLowerCase();
-      if (newUsername && newUsername !== state.user.username.toLowerCase()) data.username = newUsername;
-      const { user } = await window.API.updateProfile(data);
-      state.user = user;
-      cacheUser(user);
-      window.UI.showMessenger(state.user);
-      window.UI.showToast('تم حفظ الملف الشخصي', 'success');
-    } catch (error) { showError(error); }
-    finally { submitBtn.disabled = false; submitBtn.textContent = 'حفظ الملف'; }
-  }
-
   // Privacy settings
   async function loadPrivacySettings() {
     try {
-      const { user } = await window.API.getMe();
+      const user = await window.API.getMe();
       state.user = user;
       cacheUser(user);
       if (els.privacyLastSeen) els.privacyLastSeen.value = user.last_seen_visibility || 'everyone';
@@ -314,7 +294,7 @@
   }
   async function onPrivacyChange(key, value) {
     try {
-      const { user } = await window.API.updateProfile({ [key]: value });
+      const user = await window.API.updateProfile({ [key]: value });
       state.user = user;
       cacheUser(user);
       window.UI.showMessenger(state.user);
@@ -386,7 +366,7 @@
     els.sessionsList.innerHTML = '';
     for (const s of sessions) {
       const item = document.createElement('div');
-      item.className = `session-item${s.id === state.sessionId ? ' current' : ''}`;
+      item.className = `session-item${s.current ? ' current' : ''}`;
       const icon = document.createElement('span');
       icon.className = 'icon';
       icon.innerHTML = '<svg class="ic"><use href="assets/icons.svg#i-device-mobile"/></svg>';
@@ -402,7 +382,7 @@
       const revokeBtn = document.createElement('button');
       revokeBtn.className = 'revoke-btn';
       revokeBtn.textContent = 'إلغاء الجلسة';
-      revokeBtn.hidden = s.id === state.sessionId;
+      revokeBtn.hidden = s.current === true;
       revokeBtn.onclick = async () => {
         if (!confirm('هل تريد إلغاء هذه الجلسة؟')) return;
         try {
@@ -998,16 +978,21 @@
   }
   async function saveProfile(event) {
     event.preventDefault();
+    const submitBtn = els.profileForm.querySelector('button[type="submit"]');
     const data = { bio: els.profileBio.value.trim() || null };
-    if (els.profileDisplayName.value.trim()) data.display_name = els.profileDisplayName.value.trim();
-    if (els.profileUsername.value.trim()) data.username = els.profileUsername.value.trim();
+    const displayName = els.profileDisplayName.value.trim();
+    if (displayName) data.display_name = displayName;
+    const newUsername = els.profileUsername.value.trim().toLowerCase();
+    if (newUsername && newUsername !== state.user?.username?.toLowerCase()) data.username = newUsername;
+    submitBtn.disabled = true; submitBtn.textContent = 'جاري الحفظ...';
     try {
       const user = await window.API.updateProfile(data);
       state.user = user;
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      cacheUser(user);
       window.UI.showMessenger(user);
-      window.UI.showToast('تم حفظ الملف الشخصي.', 'success');
-    } catch (error) { window.UI.showToast(error.message, 'error'); }
+      window.UI.showToast('تم حفظ الملف الشخصي', 'success');
+    } catch (error) { showError(error); }
+    finally { submitBtn.disabled = false; submitBtn.textContent = 'حفظ الملف'; }
   }
 
   async function openChat(contact) {
@@ -1317,7 +1302,6 @@
     $('#chat-profile-button').addEventListener('click', () => {
       if (state.activeId) openUserProfile(state.activeId);
     });
-  }
     $$('.folder-tab').forEach((tab) => tab.addEventListener('click', () => {
       state.folder = tab.dataset.folder;
       $$('.folder-tab').forEach((item) => item.classList.toggle('active', item === tab));
@@ -1365,7 +1349,6 @@
     document.querySelectorAll('[data-open-search]').forEach((button) => button.addEventListener('click', showSearch));
     $('#brand-home').addEventListener('click', (event) => { event.preventDefault(); window.UI.closeChatLayout(); showPanel('chats'); });
     $('#chat-profile-button').addEventListener('click', () => window.UI.showToast('ملف الشخص قريباً.'));
-    $('#profile-form').addEventListener('submit', saveProfile);
     $('#scroll-down').addEventListener('click', () => window.UI.scrollToBottom());
     $('#cancel-reply').addEventListener('click', window.UI.hideReply);
     document.querySelector('#back-to-list').addEventListener('click', window.UI.closeChatLayout);

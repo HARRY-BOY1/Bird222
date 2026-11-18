@@ -1,11 +1,11 @@
-﻿name: Deploy Bird client to GitHub Pages
+name: Deploy Bird client to GitHub Pages
+
 on:
   push:
     branches: [main]
     paths:
-      - 'messenger-client/**'
-      - 'config.js'
       - 'index.html'
+      - 'config.js'
       - 'js/**'
       - 'css/**'
       - 'assets/**'
@@ -13,7 +13,6 @@ on:
       - 'icons/**'
       - 'manifest.json'
       - 'service-worker.js'
-      - 'netlify.toml'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -34,9 +33,13 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Stage client files
+        run: |
+          rm -rf _site && mkdir _site
+          cp -r index.html config.js manifest.json service-worker.js css js fonts icons assets _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: messenger-client
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
