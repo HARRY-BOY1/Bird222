@@ -1,0 +1,52 @@
+/* Bird Aurora refresh — layered after styles.css to keep the existing feature selectors stable. */
+:root {
+  --blue: #2b8ad1;
+  --blue-dark: #176eae;
+  --blue-soft: #eaf6ff;
+  --aurora: #63d4c7;
+  --ink: #172333;
+  --line: #e6edf4;
+  --surface-2: #f5f9fc;
+  --shadow-sm: 0 4px 14px rgba(20, 66, 101, .07);
+  --shadow-md: 0 14px 36px rgba(20, 66, 101, .11);
+}
+:root[data-theme="dark"] {
+  --blue: #65b9f2;
+  --blue-dark: #8bd0fa;
+  --blue-soft: #143a51;
+  --aurora: #67d8ca;
+  --ink: #eff6fb;
+  --line: #243440;
+  --surface-2: #1c2a35;
+  --shadow-sm: 0 4px 14px rgba(0,0,0,.24);
+  --shadow-md: 0 14px 36px rgba(0,0,0,.32);
+}
+body { background: radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--blue-soft) 80%, transparent), transparent 32%), var(--bg); }
+.auth-screen { background: radial-gradient(circle at 20% 12%, color-mix(in srgb, var(--aurora) 24%, transparent), transparent 34%), radial-gradient(circle at 85% 92%, color-mix(in srgb, var(--blue) 20%, transparent), transparent 38%), var(--bg); }
+.auth-card, .settings-card, .drawer-profile { backdrop-filter: blur(18px); }
+.auth-card { border-color: color-mix(in srgb, var(--blue) 18%, var(--line)); box-shadow: 0 22px 56px rgba(18,72,110,.14); }
+.brand-mark, .button-primary, .send-button, .fab { background: linear-gradient(135deg, var(--blue), var(--blue-dark)); }
+.messenger-screen { max-width: 1680px; box-shadow: 0 24px 90px rgba(12, 43, 70, .13); }
+.topbar, .chat-header { background: color-mix(in srgb, var(--surface) 91%, transparent); backdrop-filter: blur(18px); }
+.search-box { border: 1px solid transparent; transition: border-color .2s, box-shadow .2s, background .2s; }
+.search-box:focus-within { border-color: color-mix(in srgb, var(--blue) 56%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 12%, transparent); }
+.folder-tab { border: 1px solid transparent; }
+.folder-tab.active { box-shadow: 0 5px 16px color-mix(in srgb, var(--blue) 26%, transparent); }
+.chat-row { margin: 2px 0; border: 1px solid transparent; }
+.chat-row:hover { border-color: color-mix(in srgb, var(--blue) 14%, var(--line)); }
+.chat-row.active { border-color: color-mix(in srgb, var(--blue) 25%, transparent); box-shadow: inset 3px 0 0 var(--blue); }
+.avatar { box-shadow: 0 4px 12px rgba(25,93,137,.13); }
+.chat-pane { background-image: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--blue) 11%, transparent) 1px, transparent 0), linear-gradient(135deg, color-mix(in srgb, var(--blue-soft) 36%, transparent), transparent 48%); }
+.message-bubble { border: 1px solid color-mix(in srgb, var(--ink-3) 9%, transparent); box-shadow: 0 5px 14px rgba(16, 46, 70, .06); }
+.message-row.mine .message-bubble { background: linear-gradient(145deg, color-mix(in srgb, var(--blue-soft) 88%, var(--surface)), color-mix(in srgb, var(--aurora) 14%, var(--bubble-out))); }
+.composer { padding-top: 10px; box-shadow: 0 -8px 26px rgba(12, 43, 70, .06); }
+.composer textarea { border: 1px solid transparent; }
+.composer textarea:focus { border-color: color-mix(in srgb, var(--blue) 55%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 10%, transparent); }
+.button-soft { padding: 8px 14px; border-radius: var(--r-full); background: var(--blue-soft); color: var(--blue); font-weight: 700; font-size: var(--fs-sm); }
+.button-soft:hover, .button-soft.is-enabled { background: var(--blue); color: #fff; }
+.notification-row span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.notification-row small { color: var(--ink-3); font-size: var(--fs-xs); font-weight: 400; }
+.notification-row button:disabled { opacity: .55; cursor: not-allowed; }
+.connection-banner { background: linear-gradient(90deg, color-mix(in srgb, var(--blue-soft) 95%, transparent), color-mix(in srgb, var(--aurora) 13%, transparent)); }
+@media (min-width: 821px) { .list-screen { background: color-mix(in srgb, var(--surface) 94%, var(--blue-soft)); } .chat-header { padding-inline: 22px; } .messages-container { padding-inline: 8%; } }
+@media (prefers-reduced-motion: reduce) { .chat-row, .button, .icon-button, .fab { transition: none; } }
