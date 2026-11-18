@@ -72,7 +72,7 @@ export async function uploadFile(file: File, token: string, avatar = false) {
   return data
 }
 
-export function mapMessage(message: BirdMessage, me: number): BirdMessage {
+export function mapMessage(message: BirdMessage): BirdMessage {
   return {
     ...message,
     sender_id: Number(message.sender_id), receiver_id: Number(message.receiver_id),

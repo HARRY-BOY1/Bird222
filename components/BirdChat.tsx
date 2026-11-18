@@ -65,7 +65,7 @@ export default function BirdChat() {
       const next = new Set(prev); if (event.status === 'online') next.add(Number(event.userId)); else next.delete(Number(event.userId)); return next
     }))
     socket.on('message:new', (message: BirdMessage) => {
-      const normalized = mapMessage(message, user.id)
+      const normalized = mapMessage(message)
       if (Number(normalized.sender_id) === Number(active?.id) || Number(normalized.receiver_id) === Number(active?.id)) {
         setMessages(prev => prev.some(m => m.id === normalized.id) ? prev : [...prev, normalized])
         if (Number(normalized.receiver_id) === Number(user.id)) socket.emit('message:read', { messageId: normalized.id })
@@ -74,7 +74,7 @@ export default function BirdChat() {
     })
     socket.on('message:status', ({ messageId, status }: { messageId: number; status: BirdMessage['status'] }) => setMessages(prev => prev.map(m => m.id === Number(messageId) ? { ...m, status } : m)))
     socket.on('message:edited', ({ messageId, text: nextText, editedAt }: { messageId: number; text: string; editedAt: string }) => setMessages(prev => prev.map(m => m.id === Number(messageId) ? { ...m, text: nextText, edited_at: editedAt } : m)))
-    socket.on('message:deleted', ({ messageId }: { messageId: number }) => setMessages(prev => prev.filter(m => m.id !== Number(messageId)))
+    socket.on('message:deleted', ({ messageId }: { messageId: number }) => setMessages(prev => prev.filter(m => m.id !== Number(messageId))))
     socket.on('message:reaction', ({ messageId, reaction }: { messageId: number; reaction: string | null }) => setMessages(prev => prev.map(m => m.id === Number(messageId) ? { ...m, sticker: reaction || null } : m)))
     socket.on('typing:start', ({ from }: { from: number }) => { if (Number(from) === active?.id) setTyping(true) })
     socket.on('typing:stop', ({ from }: { from: number }) => { if (Number(from) === active?.id) setTyping(false) })
@@ -86,7 +86,7 @@ export default function BirdChat() {
     let cancelled = false
     setMessages([])
     api<{ messages: BirdMessage[] }>(`/api/messages/${active.id}`, { token })
-      .then(data => { if (!cancelled) setMessages(data.messages.map(m => mapMessage(m, user?.id || 0))) })
+      .then(data => { if (!cancelled) setMessages(data.messages.map(m => mapMessage(m))) })
       .catch(error => { if (!cancelled) notify(error instanceof Error ? error.message : 'تعذر تحميل الرسائل.', true) })
     return () => { cancelled = true }
   }, [active, token, user?.id, notify])
@@ -101,7 +101,7 @@ export default function BirdChat() {
     socketRef.current.timeout(20000).emit('message:send', { to: active.id, text: value, ...(attachment ? { attachmentId: attachment.id, kind: attachment.kind } : {}) }, (err: Error | null, response: { message?: BirdMessage; error?: string }) => {
       setBusy(false)
       if (err || response?.error || !response?.message) { setText(value); notify(response?.error || 'فشل إرسال الرسالة.', true); return }
-      const normalized = mapMessage(response.message, user?.id || 0)
+      const normalized = mapMessage(response.message)
       setMessages(prev => prev.some(m => m.id === normalized.id) ? prev : [...prev, normalized])
       void loadContacts()
     })
@@ -123,7 +123,7 @@ export default function BirdChat() {
         const kind = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : file.type.startsWith('audio/') ? 'audio' : 'file'
         await new Promise<void>((resolve, reject) => socketRef.current?.timeout(20000).emit('message:send', { to: active?.id, text: '', kind, attachmentId: item.id }, (err: Error | null, response: { message?: BirdMessage; error?: string }) => {
           if (err || response?.error || !response?.message) return reject(new Error(response?.error || 'فشل إرسال الملف.'))
-          setMessages(prev => [...prev, mapMessage(response.message!, user?.id || 0)]); resolve()
+          setMessages(prev => [...prev, mapMessage(response.message!)]); resolve()
         }) || reject(new Error('الاتصال بالخادم غير متاح.')))
         notify('تم إرسال الملف.')
       }
