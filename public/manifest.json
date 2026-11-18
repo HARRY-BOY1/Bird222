@@ -1,0 +1,14 @@
+{
+  "name": "Bird Messenger",
+  "short_name": "Bird",
+  "description": "واجهة مراسلة Bird متصلة بخادم Railway الحالي",
+  "start_url": "/Bird222/",
+  "display": "standalone",
+  "background_color": "#0b141a",
+  "theme_color": "#00a884",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    { "src": "/Bird222/whatsapp-logo.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
