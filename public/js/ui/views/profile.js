@@ -5,7 +5,7 @@ import { el, icon, avatar, toast } from "../dom.js";
 export function renderProfile(box) {
   const me = state.me;
   const head = el("div", { class: "profile-head" });
-  const drawHead = () => head.replaceChildren(avatar(me, "xl"), el("div", { class: "profile-name" }, me.name), el("div", { class: "muted" }, "@" + me.username));
+  const drawHead = () => head.replaceChildren(avatar(me, "xl"), el("div", { class: "profile-name" }, me.name || "مستخدم"), me.username ? el("div", { class: "muted" }, "@" + me.username) : null);
   drawHead();
 
   const picker = el("input", { type: "file", accept: "image/*", class: "hidden", onchange: async (e) => {
@@ -15,7 +15,7 @@ export function renderProfile(box) {
     try { await uploadAvatar(file); drawHead(); toast("تم تحديث الصورة"); } catch (err) { toast(err.message); }
   } });
 
-  const name = el("input", { value: me.name, maxlength: 50 });
+  const name = el("input", { value: me.name || "", maxlength: 50 });
   const bio = el("input", { value: me.bio || "", maxlength: 140, placeholder: "اكتب نبذة قصيرة" });
   const error = el("div", { class: "form-error" });
   const save = el("button", { class: "btn", onclick: async () => {

@@ -36,9 +36,9 @@ export function normUser(u) {
   if (!u) return null;
   return {
     id: pick(u, ["id", "user_id", "userId"]),
-    username: pick(u, ["username", "user_name", "handle"], ""),
-    name: pick(u, ["display_name", "displayName", "name", "full_name", "username"], "مستخدم"),
-    bio: pick(u, ["bio", "about", "status_text"], ""),
+    username: pick(u, ["username", "user_name", "handle"], "") || "",
+    name: pick(u, ["display_name", "displayName", "name", "full_name", "username"], "مستخدم") || "مستخدم",
+    bio: pick(u, ["bio", "about", "status_text"], "") || "",
     avatar: protectedUrl(pick(u, ["avatar_url", "avatarUrl", "avatar", "photo"], "")),
     online: !!pick(u, ["online", "is_online"], false),
     last: pick(u, ["last_message", "lastMessage"], null),

@@ -16,7 +16,6 @@ export async function updateProfile({ name, bio }) {
 export async function uploadAvatar(file) {
   const form = new FormData();
   form.append("avatar", file);
-  form.append("file", file);
   const res = await api.upload("/api/me/avatar", form);
   const user = normUser((res && res.user) || res);
   const url = user && user.avatar;

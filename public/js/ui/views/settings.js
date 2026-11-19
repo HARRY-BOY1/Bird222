@@ -24,7 +24,7 @@ export function renderSettings(box) {
   box.replaceChildren(
     el("button", { class: "card account-card", onclick: () => { state.tab = "profile"; bus.emit("tab"); } },
       avatar(me, "lg"),
-      el("div", null, el("div", { class: "profile-name" }, me.name), el("div", { class: "muted" }, "@" + me.username))),
+      el("div", null, el("div", { class: "profile-name" }, me.name || "مستخدم"), me.username ? el("div", { class: "muted" }, "@" + me.username) : null)),
 
     el("div", { class: "card group" },
       item("moon", "الوضع الداكن", themeSwitch.node, () => {
