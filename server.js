@@ -272,12 +272,18 @@ function serveStatic(req, res) {
 
 function send(req, res, file, data) {
   const ext = path.extname(file).toLowerCase();
-  const noCache = ext === ".html" || path.basename(file) === "sw.js";
+  const noCache = [".html", ".js", ".mjs", ".css", ".json"].includes(ext);   // الواجهة تُعاد مراجعتها دائماً ليظهر كل تحديث
+  const extra = {};
+  // مرة واحدة لكل متصفح: امسح الكاش القديم (كان JS/CSS يُخزَّن ساعة)
+  if (ext === ".html" && !/(^|;\s*)bv=3/.test(req.headers.cookie || "")) {
+    extra["Clear-Site-Data"] = '"cache"';
+    extra["Set-Cookie"] = "bv=3; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
+  }
   res.writeHead(200, Object.assign({
     "Content-Type": MIME[ext] || "application/octet-stream",
     "Content-Length": data.length,
     "Cache-Control": noCache ? "no-cache" : "public, max-age=3600"
-  }, SECURITY_HEADERS));
+  }, SECURITY_HEADERS, extra));
   res.end(req.method === "HEAD" ? undefined : data);
 }
 

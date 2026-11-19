@@ -1,5 +1,5 @@
 /* Service worker: يخزّن هيكل الواجهة فقط. لا يلمس أي طلب للباك-إند أو بيانات المستخدم. */
-const CACHE = "bird-shell-v2";
+const CACHE = "bird-shell-v3";
 const NEVER_CACHE = ["/api", "/socket.io", "/uploads", "/files", "/avatars", "/health"];
 
 self.addEventListener("install", (e) => {
@@ -21,7 +21,7 @@ self.addEventListener("fetch", (e) => {
   if (NEVER_CACHE.some((p) => url.pathname === p || url.pathname.startsWith(p + "/"))) return;
 
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: "no-cache" })
       .then((res) => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
         return res;
