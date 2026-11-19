@@ -35,3 +35,17 @@ export const api = {
   del: (path) => request(path, { method: "DELETE" }),
   upload: (path, form) => request(path, { method: "POST", body: form })
 };
+
+// رفع ملف خام (بدون multipart) إلى امتدادات Bird في البوابة
+export async function rawUpload(path, blob, name) {
+  let res;
+  try {
+    res = await fetch(CONFIG.API_BASE + path, { method: "POST", body: blob, headers: {
+      Authorization: "Bearer " + state.token, "Content-Type": blob.type || "application/octet-stream",
+      "X-File-Name": encodeURIComponent(name || "file") } });
+  } catch (e) { throw new ApiError("تعذّر الاتصال بالخادم", 0); }
+  let data = null;
+  try { data = await res.json(); } catch (e) { /* بدون JSON */ }
+  if (!res.ok) throw new ApiError((data && data.error) || `خطأ (${res.status})`, res.status);
+  return data;
+}

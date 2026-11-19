@@ -1,6 +1,8 @@
 import { state, isOnline } from "../core/state.js";
 import { same } from "../core/adapter.js";
-import { closeChat, sendText, sendFile, emitTyping, editMessage, deleteMessage, reactToMessage, blockUser } from "../core/chat.js";
+import { startRecording } from "../core/voice.js";
+import { EMOJIS } from "./emoji.js";
+import { fileUrl, closeChat, sendText, sendFile, emitTyping, editMessage, deleteMessage, reactToMessage, blockUser } from "../core/chat.js";
 import { el, icon, avatar, fmtTime, dayLabel, onLongPress, popupMenu, pointOf, toast } from "./dom.js";
 
 let pane = null;
@@ -43,12 +45,37 @@ export function renderChatPane() {
   });
   fileInput.addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; sendFile(f); });
 
+  const panel = el("div", { class: "emoji-panel hidden" }, EMOJIS.map((e) => el("button", { type: "button", onclick: () => {
+    input.setRangeText(e, input.selectionStart, input.selectionEnd, "end"); input.focus();
+  } }, e)));
+  let rec = null, tick = null;
+  const timer = el("span", { class: "rec-time hidden" });
+  const mic = el("button", { class: "icon-btn mic", "aria-label": "رسالة صوتية" }, icon("mic"));
+  const resetMic = () => { rec = null; clearInterval(tick); mic.classList.remove("rec"); timer.classList.add("hidden"); };
+  mic.addEventListener("click", async () => {
+    if (rec) {
+      const r = rec; resetMic();
+      const { blob, ms } = await r.stop();
+      if (ms < 700) return toast("اضغط مطولاً لتسجيل أطول");
+      sendFile(blob, "voice-" + Date.now() + "." + (blob.type.includes("mp4") ? "m4a" : "webm"));
+      return;
+    }
+    try {
+      rec = await startRecording();
+      const t0 = Date.now();
+      mic.classList.add("rec"); timer.classList.remove("hidden");
+      tick = setInterval(() => { const s = Math.floor((Date.now() - t0) / 1000); timer.textContent = "● " + Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }, 250);
+    } catch (e) { resetMic(); toast("اسمح للمتصفح باستخدام الميكروفون"); }
+  });
+
   pane.replaceChildren(
     el("header", { class: "appbar chat-head", id: "chat-head" }),
     el("div", { class: "msgs", id: "msgs" }),
+    panel,
     el("div", { class: "composer" },
+      el("button", { class: "icon-btn", "aria-label": "إيموجي", onclick: () => panel.classList.toggle("hidden") }, icon("smile")),
       el("button", { class: "icon-btn", "aria-label": "إرفاق ملف", onclick: () => fileInput.click() }, icon("attach")),
-      fileInput, input,
+      fileInput, input, timer, mic,
       el("button", { class: "icon-btn send", "aria-label": "إرسال", onclick: submit }, icon("send"))));
 
   renderHead();
@@ -82,6 +109,7 @@ export function renderHead() {
     more);
 }
 
+const mediaIsAudio = (m) => /^audio\//.test(m.fileType) || /^voice-/.test(m.fileName) || /\.(m4a|mp3|ogg|wav)(\?|$)/i.test(m.file);
 const mediaIsImage = (m) => /^image\//.test(m.fileType) || /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(m.file);
 
 function statusIcon(m) {
@@ -96,9 +124,10 @@ function bubble(m) {
   if (m.deleted) node.append("🚫 تم حذف هذه الرسالة");
   else {
     if (m.file) {
-      node.append(mediaIsImage(m)
-        ? el("a", { href: m.file, target: "_blank", rel: "noopener" }, el("img", { class: "att", src: m.file, alt: "", loading: "lazy" }))
-        : el("a", { class: "file", href: m.file, target: "_blank", rel: "noopener" }, icon("attach", 18), m.fileName || m.text || "ملف"));
+      node.append(mediaIsAudio(m) ? el("audio", { class: "voice", controls: true, preload: "metadata", src: fileUrl(m.file) })
+        : mediaIsImage(m)
+        ? el("a", { href: fileUrl(m.file), target: "_blank", rel: "noopener" }, el("img", { class: "att", src: fileUrl(m.file), alt: "", loading: "lazy" }))
+        : el("a", { class: "file", href: fileUrl(m.file), target: "_blank", rel: "noopener" }, icon("attach", 18), m.fileName || m.text || "ملف"));
     }
     if (m.text && !(m.file && m.text === m.fileName)) node.append(el("div", { class: "text" }, m.text));
     if (m.reactions) {

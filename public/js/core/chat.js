@@ -1,4 +1,5 @@
 import { api } from "./api.js";
+import { CONFIG } from "./config.js";
 import { state, bus, addMsg } from "./state.js";
 import { asList, normMsg, pick, same } from "./adapter.js";
 import { emitEvent, markRead } from "./socket.js";
@@ -47,18 +48,27 @@ export function sendText(text, extra = {}) {
   bus.emit("list");
 }
 
-export async function sendFile(file) {
+export const fileUrl = (u) => {
+  if (!u) return u;
+  if (u.startsWith("/files/") && !u.includes("?")) return u + "?token=" + encodeURIComponent(state.token || "");
+  if (u.startsWith("/x/f/") && !u.includes("?")) return u + "?t=" + encodeURIComponent(state.token || "");
+  return u;
+};
+
+export async function sendFile(file, name) {
   if (!file || !state.active) return;
-  const form = new FormData();
-  form.append("file", file);
+  if (file.size > CONFIG.MAX_FILE) { bus.emit("notice", "الحد الأقصى للملف 50 ميغابايت"); return; }
+  const fname = name || file.name, type = file.type || "application/octet-stream";
   try {
     bus.emit("notice", "جارٍ الرفع…");
+    const form = new FormData();
+    form.append("file", file, fname);
     const res = await api.upload("/api/upload", form);
     const uploaded = res && (res.file || res);
     const attachmentId = uploaded && (uploaded.id || uploaded.attachment_id);
     if (!attachmentId) throw new Error("لم يرجع الخادم معرف الملف");
-    sendText(file.name, {
-      kind: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "file",
+    sendText(fname, {
+      kind: type.startsWith("image/") ? "image" : type.startsWith("video/") ? "video" : type.startsWith("audio/") ? "audio" : "file",
       attachmentId
     });
   } catch (e) { bus.emit("notice", e.message); }

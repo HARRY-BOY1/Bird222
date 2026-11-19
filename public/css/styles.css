@@ -154,3 +154,11 @@ html[dir="rtl"] .switch.on::after{transform:translateX(-20px)}
   .shell.chat-open .chat-pane{transform:none}
   .back{display:grid}
 }
+
+.emoji-panel{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:8px 10px;background:var(--surface);border-top:1px solid var(--surface-2);max-height:180px;overflow:auto}
+.emoji-panel button{border:0;background:none;font-size:24px;padding:4px;border-radius:8px;cursor:pointer}
+.emoji-panel button:active{background:var(--surface-2)}
+.composer .mic.rec{background:#e5484d;color:#fff;border-radius:50%}
+.rec-time{align-self:center;color:#e5484d;font-size:14px;white-space:nowrap}
+audio.voice{width:min(240px,62vw);height:40px;display:block}
+.avatar img{position:absolute;inset:0}

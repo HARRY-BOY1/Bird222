@@ -1,21 +1,23 @@
-# Bird 2.0 Gateway
+# Bird 2.1 Gateway
 
-واجهة Bird العربية مع بوابة Node.js. البوابة تقدم ملفات الواجهة وتمرر `/api` و`/socket.io` و`/files` إلى خادم Bird الحالي، لذلك لا يظهر عنوان خادم Railway في المتصفح.
+واجهة Bird العربية بتصميم مراسلة حديث، مع بوابة Node.js تخفي عنوان الخادم الخلفي عن المتصفح وتمرير REST وSocket.IO عبر نفس النطاق.
 
-## Railway deployment
+## Railway
 
-Deploy this repository as a Node service. Set the following Railway variable:
+اربط هذا المستودع بخدمة Node على Railway واضبط متغير البيئة التالي:
 
 ```env
 UPSTREAM_URL=https://soakalshorja-production.up.railway.app
 ```
 
-The service starts with `npm start` and exposes `/health` through the upstream Bird server. Do not put `UPSTREAM_URL` in committed frontend files or in `.env`.
+تبدأ الخدمة عبر `npm start` وتستخدم `/health` للفحص. لا تضع عنوان الخادم أو أي توكن في ملفات الواجهة.
 
-## Local run
+## محليًا
 
 ```bash
 cp .env.example .env
-# set UPSTREAM_URL in .env
+# عدّل UPSTREAM_URL داخل .env
 npm start
 ```
+
+تستخدم الواجهة نقاط Bird الحالية للمصادقة، جهات الاتصال، الرسائل، المرفقات، الحساب، وSocket.IO. بقي خادم Bird وقاعدة بياناته في مستودعه المنفصل.

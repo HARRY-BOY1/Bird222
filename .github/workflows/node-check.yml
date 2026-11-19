@@ -20,8 +20,14 @@ jobs:
         run: |
           node --check server.js
           find public/js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
-      - name: Check package metadata
-        run: npm start & pid=$!; sleep 2; kill $pid || true
+      - name: Start gateway smoke check
+        run: |
+          npm start > /tmp/bird-gateway.log 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 10); do curl -fsS http://127.0.0.1:${PORT}/health && exit 0 || sleep 1; done
+          cat /tmp/bird-gateway.log
+          exit 1
         env:
           UPSTREAM_URL: https://soakalshorja-production.up.railway.app
           PORT: 3900

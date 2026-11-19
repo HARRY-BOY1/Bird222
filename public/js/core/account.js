@@ -19,7 +19,7 @@ export async function uploadAvatar(file) {
   form.append("file", file);
   const res = await api.upload("/api/me/avatar", form);
   const user = normUser((res && res.user) || res);
-  const url = (user && user.avatar) || pick(res, ["url", "avatar_url", "avatar"], "");
+  const url = user && user.avatar;
   if (url) state.me.avatar = url;
   saveMe();
 }
