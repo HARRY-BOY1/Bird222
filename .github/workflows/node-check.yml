@@ -1,0 +1,27 @@
+name: Validate Bird gateway
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate JavaScript
+        run: |
+          node --check server.js
+          find public/js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Check package metadata
+        run: npm start & pid=$!; sleep 2; kill $pid || true
+        env:
+          UPSTREAM_URL: https://soakalshorja-production.up.railway.app
+          PORT: 3900
